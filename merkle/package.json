@@ -1,0 +1,22 @@
+{
+  "name": "merkle",
+  "version": "1.0.0",
+  "description": "",
+  "main": "build/src/index.js",
+  "scripts": {
+    "build": "rm ./build -rf && tsc",
+    "test": "node ./build/src/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^22.5.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.4"
+  },
+  "dependencies": {
+    "@types/blessed": "^0.1.25",
+    "blessed": "^0.1.81"
+  }
+}
