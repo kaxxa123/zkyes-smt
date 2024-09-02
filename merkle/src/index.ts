@@ -1,16 +1,13 @@
 import blessed from 'blessed';
+import { EMPTY_NODE } from './sparse_merkle'
 import { TreeDisplay, TreeBox } from './draw_merkle'
 
 const PRETTY = true;
 const VIEW_WIDTH = 100;
-
-let tree = new TreeDisplay(5n, PRETTY);
-tree.addLeaf(3n, "3")
-tree.addLeaf(5n, "5")
-tree.addLeaf(10n, "10")
+const INIT_LEVEL = 5;
 
 let horiz_offset = 0;
-let vert_offset = 0;
+let tree = new TreeDisplay(BigInt(INIT_LEVEL), PRETTY);
 let tree_data: TreeBox = tree.drawTree()
 let view_data = tree.viewTree(horiz_offset, VIEW_WIDTH, tree_data);
 
@@ -20,12 +17,139 @@ const screen = blessed.screen({
     title: 'Sparse Merkle Tree'
 });
 
+// Main form
+const form = blessed.form({
+    parent: screen,
+    width: '20%',
+    height: '100%',
+    keys: true,
+    vi: true,
+    border: 'line',
+    label: 'Sparse Merkle Tree',
+    tags: true
+});
+
+// Mekle Depth
+const levelInput = blessed.textbox({
+    parent: form,
+    mouse: true,
+    name: 'Levels',
+    value: INIT_LEVEL.toString(),
+    top: 1,
+    left: 1,
+    height: 3,
+    width: 20,
+    inputOnFocus: true,
+    border: { type: 'line' },
+    label: 'Levels'
+});
+
+// Mekle Leaf
+const leafInput = blessed.textbox({
+    parent: form,
+    mouse: true,
+    name: 'Leaf',
+    top: 6,
+    left: 1,
+    height: 3,
+    width: 20,
+    inputOnFocus: true,
+    border: { type: 'line' },
+    label: 'Leaf'
+});
+
+const resetButton = blessed.button({
+    parent: form,
+    mouse: true,
+    keys: true,
+    shrink: true,
+    padding: {
+        left: 2,
+        right: 2
+    },
+    left: 1,
+    top: 4,
+    name: 'reset',
+    content: 'Reset',
+    style: {
+        bg: 'blue',
+        focus: {
+            bg: 'cyan'
+        }
+    }
+});
+
+const addButton = blessed.button({
+    parent: form,
+    mouse: true,
+    keys: true,
+    shrink: true,
+    padding: {
+        left: 2,
+        right: 2
+    },
+    left: 1,
+    top: 9,
+    name: 'add_leaf',
+    content: 'Add Leaf',
+    style: {
+        bg: 'blue',
+        focus: {
+            bg: 'cyan'
+        }
+    }
+});
+
+const delButton = blessed.button({
+    parent: form,
+    mouse: true,
+    keys: true,
+    shrink: true,
+    padding: {
+        left: 2,
+        right: 2
+    },
+    left: 1,
+    top: 11,
+    name: 'del_leaf',
+    content: 'Delete Leaf',
+    style: {
+        bg: 'blue',
+        focus: {
+            bg: 'cyan'
+        }
+    }
+});
+
+const closeButton = blessed.button({
+    parent: form,
+    mouse: true,
+    keys: true,
+    shrink: true,
+    padding: {
+        left: 2,
+        right: 2
+    },
+    left: 1,
+    bottom: 1,
+    name: 'close',
+    content: 'Close',
+    style: {
+        bg: 'blue',
+        focus: {
+            bg: 'cyan'
+        }
+    }
+});
+
 // Create a scrollable box
 const treeBox = blessed.box({
-    top: 'center',
-    left: 'center',
+    parent: screen,
+    top: 1,
+    right: 1,
+    bottom: 1,
     width: VIEW_WIDTH + 3,
-    height: '80%',          // Box height is 70% of the screen height
+    mouse: true,
     tags: true,
     border: {
         type: 'line'
@@ -53,37 +177,18 @@ const treeBox = blessed.box({
     vi: true
 });
 
-// Function to update visible data
-function updateScrollbar(horiz: boolean) {
-
-    const scrollPercentage = Math.min(horiz_offset / (tree_data.width - VIEW_WIDTH), 1);
-    const scrollbarWidth = Math.max(Math.round(VIEW_WIDTH * (VIEW_WIDTH / tree_data.width)), 1);
-    const scrollbarPosition = Math.round(scrollPercentage * (VIEW_WIDTH - scrollbarWidth));
-
-    let scrollbar = '';
-    for (let pos = 0; pos < VIEW_WIDTH; pos++) {
-        if (pos >= scrollbarPosition && pos < scrollbarPosition + scrollbarWidth) {
-            scrollbar += PRETTY ? '▄' : '=';
-        } else {
-            scrollbar += PRETTY ? ' ' : '-';
-        }
-    }
-
-    if (horiz) {
-        view_data = tree.viewTree(horiz_offset, VIEW_WIDTH, tree_data);
-    }
-
-    treeBox.setContent(view_data);
-    treeBox.setLine(Number(treeBox.height) + vert_offset - 3, scrollbar);
-}
-
 // Quit on Escape, q, or Control-C
-screen.key(['escape', 'q', 'C-c'], (ch, key) => {
+screen.key(['escape', 'C-c'], (ch, key) => {
+    return process.exit(0);
+});
+
+// Quit on Close
+closeButton.on('press', () => {
     return process.exit(0);
 });
 
 // Handle horizontal scrolling.
-screen.key(['left', 'right'], function (ch, key) {
+treeBox.key(['left', 'right'], function (ch, key) {
 
     if (key.name === 'right') {
         if (horiz_offset < tree_data.width - VIEW_WIDTH)
@@ -94,42 +199,67 @@ screen.key(['left', 'right'], function (ch, key) {
             horiz_offset -= 1;
     }
 
-    updateScrollbar(true);
+    view_data = tree.viewTree(horiz_offset, VIEW_WIDTH, tree_data);
+    treeBox.setContent(view_data);
     screen.render();
 });
 
-screen.key(['up', 'down'], function (ch, key) {
+resetButton.on('press', () => {
+    let levelStr = levelInput.getValue()
+    let level = Number(levelStr)
 
-    if (key.name === 'down') {
-        if (vert_offset < tree_data.height - Number(treeBox.height) + 3)
-            vert_offset += 1;
+    if (isNaN(level))
+        return;
 
-    } else if (key.name === 'up') {
-        if (vert_offset > 0)
-            vert_offset -= 1;
-    }
+    if ((level < 2) || (level > 10))
+        return;
 
-    updateScrollbar(false);
+    horiz_offset = 0;
+    tree = new TreeDisplay(BigInt(level), PRETTY);
+    tree_data = tree.drawTree()
+    view_data = tree.viewTree(horiz_offset, VIEW_WIDTH, tree_data);
+    treeBox.setContent(view_data);
     screen.render();
 });
 
-// Listen for screen resize events
-screen.on('resize', () => {
-    updateScrollbar(false);
+addButton.on('press', () => {
+    let leafStr = leafInput.getValue();
+    let leaf = Number(leafStr)
+
+    if ((leafStr == "") || isNaN(leaf))
+        return;
+
+    if ((leaf < tree.lowerIndex()) || (leaf > tree.upperIndex()))
+        return;
+
+    horiz_offset = 0;
+    tree.addLeaf(BigInt(leaf), leaf.toString())
+    tree_data = tree.drawTree()
+    view_data = tree.viewTree(horiz_offset, VIEW_WIDTH, tree_data);
+    treeBox.setContent(view_data);
+    screen.render();
+});
+
+delButton.on('press', () => {
+    let leafStr = leafInput.getValue();
+    let leaf = Number(leafStr)
+
+    if ((leafStr == "") || isNaN(leaf))
+        return;
+
+    if ((leaf < tree.lowerIndex()) || (leaf > tree.upperIndex()))
+        return;
+
+    horiz_offset = 0;
+    tree.addLeaf(BigInt(leaf), EMPTY_NODE)
+    tree_data = tree.drawTree()
+    view_data = tree.viewTree(horiz_offset, VIEW_WIDTH, tree_data);
+    treeBox.setContent(view_data);
     screen.render();
 });
 
 // Add content to the box that exceeds its size
 treeBox.setContent(view_data);
 
-// Append the scrollable box to the screen
-screen.append(treeBox);
-
 // Render the screen
-screen.render();
-
-// Draw bottom scrollbar do this after the first
-// rendering as updateScrollbar requires the box
-// dimensions.
-updateScrollbar(false);
 screen.render();
