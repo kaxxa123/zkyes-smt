@@ -32,34 +32,22 @@ const form = blessed.form({
 // Mekle Depth
 const levelInput = blessed.textbox({
     parent: form,
-    mouse: true,
-    name: 'Levels',
-    value: INIT_LEVEL.toString(),
     top: 1,
     left: 1,
     height: 3,
     width: 20,
+    mouse: true,
+    name: 'Levels',
+    value: INIT_LEVEL.toString(),
     inputOnFocus: true,
     border: { type: 'line' },
     label: 'Levels'
 });
 
-// Mekle Leaf
-const leafInput = blessed.textbox({
+const levelButton = blessed.button({
     parent: form,
-    mouse: true,
-    name: 'Leaf',
-    top: 6,
+    top: 4,
     left: 1,
-    height: 3,
-    width: 20,
-    inputOnFocus: true,
-    border: { type: 'line' },
-    label: 'Leaf'
-});
-
-const resetButton = blessed.button({
-    parent: form,
     mouse: true,
     keys: true,
     shrink: true,
@@ -67,8 +55,6 @@ const resetButton = blessed.button({
         left: 2,
         right: 2
     },
-    left: 1,
-    top: 4,
     name: 'reset',
     content: 'Reset',
     style: {
@@ -79,8 +65,24 @@ const resetButton = blessed.button({
     }
 });
 
+// Mekle Leaf
+const leafInput = blessed.textbox({
+    parent: form,
+    top: 6,
+    left: 1,
+    height: 3,
+    width: 20,
+    mouse: true,
+    name: 'Leaf',
+    inputOnFocus: true,
+    border: { type: 'line' },
+    label: 'Leaf'
+});
+
 const addButton = blessed.button({
     parent: form,
+    top: 9,
+    left: 1,
     mouse: true,
     keys: true,
     shrink: true,
@@ -88,8 +90,6 @@ const addButton = blessed.button({
         left: 2,
         right: 2
     },
-    left: 1,
-    top: 9,
     name: 'add_leaf',
     content: 'Add Leaf',
     style: {
@@ -102,6 +102,8 @@ const addButton = blessed.button({
 
 const delButton = blessed.button({
     parent: form,
+    top: 11,
+    left: 1,
     mouse: true,
     keys: true,
     shrink: true,
@@ -109,8 +111,6 @@ const delButton = blessed.button({
         left: 2,
         right: 2
     },
-    left: 1,
-    top: 11,
     name: 'del_leaf',
     content: 'Delete Leaf',
     style: {
@@ -123,6 +123,8 @@ const delButton = blessed.button({
 
 const closeButton = blessed.button({
     parent: form,
+    left: 1,
+    bottom: 1,
     mouse: true,
     keys: true,
     shrink: true,
@@ -130,8 +132,6 @@ const closeButton = blessed.button({
         left: 2,
         right: 2
     },
-    left: 1,
-    bottom: 1,
     name: 'close',
     content: 'Close',
     style: {
@@ -204,7 +204,7 @@ treeBox.key(['left', 'right'], function (ch, key) {
     screen.render();
 });
 
-resetButton.on('press', () => {
+levelButton.on('press', () => {
     let levelStr = levelInput.getValue()
     let level = Number(levelStr)
 
