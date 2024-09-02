@@ -1,5 +1,7 @@
 import * as crypto from 'crypto';
 
+export const EMPTY_NODE = "null";
+
 export class SMT {
     private _levels: bigint;
     private _hashZero: string;
@@ -9,7 +11,7 @@ export class SMT {
 
     constructor(lvl: bigint) {
         this._levels = lvl;
-        this._hashZero = this.hash("0");
+        this._hashZero = this.hash(EMPTY_NODE);
         this._hashZeroTree = this._computeZeroTree();
         this._tree = new Map();
         this._root = this._hashZeroTree[0];
