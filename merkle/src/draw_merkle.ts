@@ -147,8 +147,13 @@ export class TreeDisplay extends SMT {
         if ((offset < 0) ||
             (view <= 1) ||  // View will always contain line termination LF
             (tree_data.width <= 0) ||
-            (tree_data.height <= 0) ||
-            (offset + view > tree_data.width))
+            (tree_data.height <= 0))
+            throw "Invalid dimensions";
+
+        if (view >= tree_data.width)
+            return this._pretty ? this._prettify(tree_data.text) : tree_data.text;
+
+        if (offset + view > tree_data.width)
             throw "Invalid dimensions";
 
         const buffer = Buffer.alloc(view * tree_data.height);
