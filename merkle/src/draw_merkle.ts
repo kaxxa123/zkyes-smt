@@ -29,8 +29,8 @@ export class TreeDisplay extends SMT {
 
     private _pretty: boolean;
 
-    constructor(lvl: bigint, pretty: boolean = false) {
-        super(lvl);
+    constructor(lvl: bigint, sorthash: boolean = false, pretty: boolean = false) {
+        super(lvl, sorthash);
         this._pretty = pretty;
     }
 

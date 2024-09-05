@@ -1,13 +1,14 @@
 import blessed from 'blessed';
-import { EMPTY_NODE } from './sparse_merkle'
+import { EMPTY_LEAF } from './sparse_merkle'
 import { TreeDisplay, TreeBox } from './draw_merkle'
 
 const PRETTY = true;
+const SORT_HASH = true;
 const VIEW_WIDTH = 100;
 const INIT_LEVEL = 5;
 
 let horiz_offset = 0;
-let tree = new TreeDisplay(BigInt(INIT_LEVEL), PRETTY);
+let tree = new TreeDisplay(BigInt(INIT_LEVEL), SORT_HASH, PRETTY);
 let tree_data: TreeBox = tree.drawTree()
 let view_data = tree.viewTree(horiz_offset, VIEW_WIDTH, tree_data);
 
@@ -251,7 +252,7 @@ delButton.on('press', () => {
         return;
 
     horiz_offset = 0;
-    tree.addLeaf(BigInt(leaf), EMPTY_NODE)
+    tree.addLeaf(BigInt(leaf), EMPTY_LEAF)
     tree_data = tree.drawTree()
     view_data = tree.viewTree(horiz_offset, VIEW_WIDTH, tree_data);
     treeBox.setContent(view_data);
