@@ -233,7 +233,7 @@ addButton.on('press', () => {
         return;
 
     horiz_offset = 0;
-    tree.addLeaf(BigInt(leaf), leaf.toString())
+    tree.addLeaf(BigInt(leaf), leaf.toString(16))
     tree_data = tree.drawTree()
     view_data = tree.viewTree(horiz_offset, VIEW_WIDTH, tree_data);
     treeBox.setContent(view_data);

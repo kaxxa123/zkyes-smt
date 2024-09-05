@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@types/blessed": "^0.1.25",
-    "blessed": "^0.1.81"
+    "blessed": "^0.1.81",
+    "ethers": "^6.13.2"
   }
 }

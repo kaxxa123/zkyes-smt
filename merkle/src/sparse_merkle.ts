@@ -1,6 +1,6 @@
-import * as crypto from 'crypto';
+import { ethers } from "ethers";
 
-export const EMPTY_NODE = "null";
+export const EMPTY_NODE = Buffer.from("null", "utf8").toString('hex');
 
 export class SMT {
     private _levels: bigint;
@@ -37,9 +37,19 @@ export class SMT {
         return this._tree.get(parent);
     }
 
-    hash(left: string, right: string = ""): string {
+    private pad32bytes(input: string): string {
+        if (input.length > 64)
+            throw "Input hex string too long.";
+
+        if (input.length === 0)
+            return "";
+
+        return input.padStart(64, '0')
+    }
+
+    private hash(left: string, right: string = ""): string {
         // Will always generate a 256-bit hash with leading zeros (if needed)
-        return crypto.createHash("sha256").update(left + right).digest('hex')
+        return ethers.keccak256("0x" + this.pad32bytes(left) + this.pad32bytes(right)).slice(2);
     }
 
     // Compute the node hash for all possible
