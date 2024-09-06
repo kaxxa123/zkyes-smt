@@ -246,6 +246,47 @@ const treeInfo = blessed.box({
 });
 // ===============================================
 
+function showError(error: string) {
+    treeInfo.setContent("ERROR: " + error);
+    screen.render();
+}
+
+function validatedLevel(): number {
+    let levelStr = levelInput.getValue()
+    let level = Number(levelStr)
+
+    if ((levelStr === "") || isNaN(level)) {
+        showError("Invalid level!");
+        return -1;
+    }
+
+    if ((level < 2) || (level > 10)) {
+        showError("Level out of range! Valid range [2,10]");
+        return -1;
+    }
+
+    return level;
+}
+
+function validatedLeaf(): number {
+    let leafStr = leafInput.getValue();
+    let leaf = Number(leafStr)
+
+    if ((leafStr === "") || isNaN(leaf)) {
+        showError("Invalid leaf index!");
+        return -1;
+    }
+
+    if ((leaf < tree.lowerIndex()) || (leaf > tree.upperIndex())) {
+        showError(`Leaf out of range! Valid range [${tree.lowerIndex()},${tree.upperIndex()}]`);
+        return -1;
+    }
+
+    return leaf;
+}
+
+// ===============================================
+// Event Handlers
 // Quit on Escape, q, or Control-C
 screen.key(['escape', 'C-c'], (ch, key) => {
     return process.exit(0);
@@ -275,14 +316,8 @@ treeBox.key(['left', 'right'], function (ch, key) {
 
 // Change tree size
 levelButton.on('press', () => {
-    let levelStr = levelInput.getValue()
-    let level = Number(levelStr)
-
-    if (isNaN(level))
-        return;
-
-    if ((level < 2) || (level > 10))
-        return;
+    let level = validatedLevel();
+    if (level < 0) return;
 
     if (tree.LEVELS_TOTAL() === BigInt(level))
         return;
@@ -292,19 +327,14 @@ levelButton.on('press', () => {
     tree_data = tree.drawTree()
     view_data = tree.viewTree(horiz_offset, VIEW_WIDTH, tree_data);
     treeBox.setContent(view_data);
+    treeInfo.setContent("");
     screen.render();
 });
 
 // Add leaf
 addButton.on('press', () => {
-    let leafStr = leafInput.getValue();
-    let leaf = Number(leafStr)
-
-    if ((leafStr == "") || isNaN(leaf))
-        return;
-
-    if ((leaf < tree.lowerIndex()) || (leaf > tree.upperIndex()))
-        return;
+    let leaf = validatedLeaf();
+    if (leaf < 0) return;
 
     horiz_offset = 0;
     let leafHash = tree.addLeaf(BigInt(leaf), leaf.toString(16))
@@ -317,14 +347,8 @@ addButton.on('press', () => {
 
 // Reset leaf to empty
 delButton.on('press', () => {
-    let leafStr = leafInput.getValue();
-    let leaf = Number(leafStr)
-
-    if ((leafStr == "") || isNaN(leaf))
-        return;
-
-    if ((leaf < tree.lowerIndex()) || (leaf > tree.upperIndex()))
-        return;
+    let leaf = validatedLeaf();
+    if (leaf < 0) return;
 
     horiz_offset = 0;
     let leafHash = tree.addLeaf(BigInt(leaf), EMPTY_LEAF)
@@ -337,14 +361,8 @@ delButton.on('press', () => {
 
 // Compute proof-of-membership parameters
 proveButton.on('press', () => {
-    let leafStr = leafInput.getValue();
-    let leaf = Number(leafStr)
-
-    if ((leafStr == "") || isNaN(leaf))
-        return;
-
-    if ((leaf < tree.lowerIndex()) || (leaf > tree.upperIndex()))
-        return;
+    let leaf = validatedLeaf();
+    if (leaf < 0) return;
 
     let proof = tree.getProof(BigInt(leaf));
 
@@ -355,6 +373,7 @@ proveButton.on('press', () => {
         proof.siblings.toString().replace(/,/g, '\n   '));
     screen.render();
 });
+// ===============================================
 
 // Add content to the box that exceeds its size
 treeBox.setContent(view_data);
