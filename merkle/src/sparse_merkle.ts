@@ -2,6 +2,12 @@ import { ethers } from "ethers";
 
 export const EMPTY_LEAF = Buffer.from("null", "utf8").toString('hex');
 
+export type PoM = {
+    root: string,
+    leaf: string,
+    siblings: string[]
+};
+
 // A Sparse Merkle Tree allowing to generate proofs-of-membership
 // and proofs-of-non-membership.
 export class SMT {
@@ -174,9 +180,12 @@ export class SMT {
     //      on setting the leaf.
     //
     // Returns
-    //      Array of siblings starting from the highest level (the level 
-    //      immidiately under the root) to the lowest (the leaf level).
-    private _extractSiblings(address: bigint, doDelete: boolean = false): string[] {
+    //      Two values:
+    //          1. Array of siblings starting from the highest level (the level 
+    //          immidiately under the root) to the lowest (the leaf level).
+    //
+    //          2. Leaf hash at address
+    private _extractSiblings(address: bigint, doDelete: boolean = false): [string[], string] {
         let node = this.ROOT();
         let bitmask = 1n << (this.LEVELS_TOTAL() - 1n)
         let zero = false;
@@ -187,48 +196,44 @@ export class SMT {
 
         // Read adjecent nodes
         for (let pos = 0; pos < this.LEVELS_TOTAL(); ++pos) {
-            zero = zero || (this.isZeroTree(node));
 
+            zero = zero || (this.isZeroTree(node));
+            if (zero) {
+                node = this.HASH_ZERO_TREE(pos + 1);
+                toRead.push(node);
+            }
             // 1 =>    Read Left, Change Right
             // 0 =>  Change Left,   Read Right
-            if (address & bitmask) {
-                if (zero) {
-                    toRead.push(this.HASH_ZERO_TREE(pos + 1))
-                } else {
-                    let subtree = this._tree.get(node);
+            else if (address & bitmask) {
+                let subtree = this._tree.get(node);
 
-                    if (subtree === undefined)
-                        throw `Node not found in tree! ${node}`;
+                if (subtree === undefined)
+                    throw `Node not found in tree! Level ${pos}, Hash: ${node}`;
 
-                    if (doDelete)
-                        this._tree.delete(node);
+                if (doDelete)
+                    this._tree.delete(node);
 
-                    toRead.push(subtree[0])
-                    node = subtree[1]
-                }
+                toRead.push(subtree[0])
+                node = subtree[1]
             }
             else {
-                if (zero) {
-                    toRead.push(this.HASH_ZERO_TREE(pos + 1));
-                } else {
-                    let subtree = this._tree.get(node);
+                let subtree = this._tree.get(node);
 
-                    if (subtree === undefined)
-                        throw `Node not found in tree! ${node}`;
+                if (subtree === undefined)
+                    throw `Node not found in tree! Level ${pos}, Hash: ${node}`;
 
-                    if (doDelete)
-                        this._tree.delete(node);
+                if (doDelete)
+                    this._tree.delete(node);
 
-                    toRead.push(subtree[1])
-                    node = subtree[0]
-                }
+                toRead.push(subtree[1])
+                node = subtree[0]
             }
 
             // next bit
             bitmask >>= 1n;
         }
 
-        return toRead
+        return [toRead, node];
     }
 
     // Compute the set of node values to be updated
@@ -289,7 +294,7 @@ export class SMT {
     //
     //      nodes - array of node value to be set
     //
-    //      siblings - array of sibbling node values
+    //      siblings - array of sibling node values
     //      that won't change but form the path to the root.
     private _addLeafNodes(address: bigint, nodes: string[], siblings: string[]) {
 
@@ -329,10 +334,15 @@ export class SMT {
     // Returns
     //      Hash of added leaf
     addLeaf(address: bigint, value: string): string {
-        let siblings = this._extractSiblings(address, true);
+        let [siblings,] = this._extractSiblings(address, true);
         let newNodes = this._computeUpdatedNodes(address, value, siblings);
         this._addLeafNodes(address, newNodes, siblings);
 
         return newNodes[newNodes.length - 1];
+    }
+
+    getProof(address: bigint): PoM {
+        let [siblings, leaf] = this._extractSiblings(address);
+        return { root: this.ROOT(), leaf, siblings };
     }
 }

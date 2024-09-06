@@ -123,6 +123,27 @@ const delButton = blessed.button({
     }
 });
 
+const proveButton = blessed.button({
+    parent: formInputs,
+    top: 13,
+    left: 1,
+    mouse: true,
+    keys: true,
+    shrink: true,
+    padding: {
+        left: 2,
+        right: 2
+    },
+    name: 'prove_leaf',
+    content: 'P-o-M',
+    style: {
+        bg: 'blue',
+        focus: {
+            bg: 'cyan'
+        }
+    }
+});
+
 const closeButton = blessed.button({
     parent: formInputs,
     left: 1,
@@ -252,6 +273,7 @@ treeBox.key(['left', 'right'], function (ch, key) {
     screen.render();
 });
 
+// Change tree size
 levelButton.on('press', () => {
     let levelStr = levelInput.getValue()
     let level = Number(levelStr)
@@ -262,14 +284,18 @@ levelButton.on('press', () => {
     if ((level < 2) || (level > 10))
         return;
 
+    if (tree.LEVELS_TOTAL() === BigInt(level))
+        return;
+
     horiz_offset = 0;
-    tree = new TreeDisplay(BigInt(level), PRETTY);
+    tree = new TreeDisplay(BigInt(level), SORT_HASH, PRETTY);
     tree_data = tree.drawTree()
     view_data = tree.viewTree(horiz_offset, VIEW_WIDTH, tree_data);
     treeBox.setContent(view_data);
     screen.render();
 });
 
+// Add leaf
 addButton.on('press', () => {
     let leafStr = leafInput.getValue();
     let leaf = Number(leafStr)
@@ -289,6 +315,7 @@ addButton.on('press', () => {
     screen.render();
 });
 
+// Reset leaf to empty
 delButton.on('press', () => {
     let leafStr = leafInput.getValue();
     let leaf = Number(leafStr)
@@ -305,6 +332,27 @@ delButton.on('press', () => {
     view_data = tree.viewTree(horiz_offset, VIEW_WIDTH, tree_data);
     treeBox.setContent(view_data);
     treeInfo.setContent(`Removed leaf ${leaf}. ${leafHash}`);
+    screen.render();
+});
+
+// Compute proof-of-membership parameters
+proveButton.on('press', () => {
+    let leafStr = leafInput.getValue();
+    let leaf = Number(leafStr)
+
+    if ((leafStr == "") || isNaN(leaf))
+        return;
+
+    if ((leaf < tree.lowerIndex()) || (leaf > tree.upperIndex()))
+        return;
+
+    let proof = tree.getProof(BigInt(leaf));
+
+    treeInfo.setContent(
+        `Root: ${proof.root}\n` +
+        `Leaf: ${proof.leaf}\n` +
+        'Siblings: \n   ' +
+        proof.siblings.toString().replace(/,/g, '\n   '));
     screen.render();
 });
 
