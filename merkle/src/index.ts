@@ -18,8 +18,9 @@ const screen = blessed.screen({
     title: 'Sparse Merkle Tree'
 });
 
-// Main form
-const form = blessed.form({
+// ===============================================
+// Input form elements
+const formInputs = blessed.form({
     parent: screen,
     width: '20%',
     height: '100%',
@@ -32,7 +33,7 @@ const form = blessed.form({
 
 // Mekle Depth
 const levelInput = blessed.textbox({
-    parent: form,
+    parent: formInputs,
     top: 1,
     left: 1,
     height: 3,
@@ -46,7 +47,7 @@ const levelInput = blessed.textbox({
 });
 
 const levelButton = blessed.button({
-    parent: form,
+    parent: formInputs,
     top: 4,
     left: 1,
     mouse: true,
@@ -68,7 +69,7 @@ const levelButton = blessed.button({
 
 // Mekle Leaf
 const leafInput = blessed.textbox({
-    parent: form,
+    parent: formInputs,
     top: 6,
     left: 1,
     height: 3,
@@ -81,7 +82,7 @@ const leafInput = blessed.textbox({
 });
 
 const addButton = blessed.button({
-    parent: form,
+    parent: formInputs,
     top: 9,
     left: 1,
     mouse: true,
@@ -102,7 +103,7 @@ const addButton = blessed.button({
 });
 
 const delButton = blessed.button({
-    parent: form,
+    parent: formInputs,
     top: 11,
     left: 1,
     mouse: true,
@@ -123,7 +124,7 @@ const delButton = blessed.button({
 });
 
 const closeButton = blessed.button({
-    parent: form,
+    parent: formInputs,
     left: 1,
     bottom: 1,
     mouse: true,
@@ -142,14 +143,59 @@ const closeButton = blessed.button({
         }
     }
 });
+// ===============================================
 
-// Create a scrollable box
-const treeBox = blessed.box({
+// ===============================================
+// Tree display box elements
+const treeBoxParent = blessed.box({
     parent: screen,
-    top: 1,
     right: 1,
-    bottom: 1,
-    width: VIEW_WIDTH + 3,
+    height: '100%',
+    width: VIEW_WIDTH + 4,
+    border: {
+        type: 'line'
+    },
+    style: {
+        border: {
+            fg: '#f0f0f0'
+        },
+        scrollbar: {
+            bg: 'blue'
+        }
+    },
+    keys: true,             // Enable keyboard scrolling
+    vi: true
+});
+
+const treeBox = blessed.box({
+    parent: treeBoxParent,
+    top: 0,
+    left: 0,
+    right: 1,
+    height: "80%",
+    mouse: true,
+    tags: true,
+    scrollable: true,       // Enable scrolling
+    alwaysScroll: true,     // Ensure the scroll bar is always visible
+    scrollbar: {
+        ch: ' ',            // Character to use for the scrollbar
+        track: {
+            bg: 'grey'      // Background color of the scrollbar track
+        },
+        style: {
+            inverse: true   // Inverse color style for scrollbar thumb
+        }
+    },
+    keys: true,             // Enable keyboard scrolling
+    vi: true
+});
+
+const treeInfo = blessed.box({
+    parent: treeBoxParent,
+    bottom: 0,
+    left: 0,
+    right: 1,
+    height: "20%",
     mouse: true,
     tags: true,
     border: {
@@ -177,6 +223,7 @@ const treeBox = blessed.box({
     keys: true,             // Enable keyboard scrolling
     vi: true
 });
+// ===============================================
 
 // Quit on Escape, q, or Control-C
 screen.key(['escape', 'C-c'], (ch, key) => {
@@ -234,10 +281,11 @@ addButton.on('press', () => {
         return;
 
     horiz_offset = 0;
-    tree.addLeaf(BigInt(leaf), leaf.toString(16))
+    let leafHash = tree.addLeaf(BigInt(leaf), leaf.toString(16))
     tree_data = tree.drawTree()
     view_data = tree.viewTree(horiz_offset, VIEW_WIDTH, tree_data);
     treeBox.setContent(view_data);
+    treeInfo.setContent(`Added leaf ${leaf}. ${leafHash}`);
     screen.render();
 });
 
@@ -252,10 +300,11 @@ delButton.on('press', () => {
         return;
 
     horiz_offset = 0;
-    tree.addLeaf(BigInt(leaf), EMPTY_LEAF)
+    let leafHash = tree.addLeaf(BigInt(leaf), EMPTY_LEAF)
     tree_data = tree.drawTree()
     view_data = tree.viewTree(horiz_offset, VIEW_WIDTH, tree_data);
     treeBox.setContent(view_data);
+    treeInfo.setContent(`Removed leaf ${leaf}. ${leafHash}`);
     screen.render();
 });
 

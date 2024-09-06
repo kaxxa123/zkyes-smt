@@ -325,9 +325,14 @@ export class SMT {
     //
     //      value - preimage of leaf hash being added.
     //      To remove a leaf set its value to EMPTY_LEAF.
-    addLeaf(address: bigint, value: string) {
+    //
+    // Returns
+    //      Hash of added leaf
+    addLeaf(address: bigint, value: string): string {
         let siblings = this._extractSiblings(address, true);
         let newNodes = this._computeUpdatedNodes(address, value, siblings);
         this._addLeafNodes(address, newNodes, siblings);
+
+        return newNodes[newNodes.length - 1];
     }
 }
