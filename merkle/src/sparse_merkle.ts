@@ -167,13 +167,13 @@ export class SMT {
     // delete all nodes that will be replaced on 
     // writing the new leaf value.
     //
-    // Inputs:
+    // Inputs
     //      address - leaf address
     //
     //      doDelete - if true, delete nodes that are to be replaced
     //      on setting the leaf.
     //
-    // Returns:
+    // Returns
     //      Array of siblings starting from the highest level (the level 
     //      immidiately under the root) to the lowest (the leaf level).
     private _extractSiblings(address: bigint, doDelete: boolean = false): string[] {
@@ -234,7 +234,7 @@ export class SMT {
     // Compute the set of node values to be updated
     // on setting the leaf at the given address.
     //
-    // Inputs:
+    // Inputs
     //      address - address of leaf being set
     //
     //      value - value of leaf hash preimage or be set
@@ -242,7 +242,7 @@ export class SMT {
     //      siblings - array of siblings covering the path
     //      from the leaf being set to the root.
     //
-    // Returns:
+    // Returns
     //      Array of hashes from root to leaf.
     private _computeUpdatedNodes(address: bigint, value: string, siblings: string[]): string[] {
         let bitmask = 1n;
@@ -284,7 +284,7 @@ export class SMT {
 
     // Add nodes to the tree structure for setting a leaf.
     //
-    // Inputs:
+    // Inputs
     //      address - address of leaf being set.
     //
     //      nodes - array of node value to be set
@@ -320,7 +320,7 @@ export class SMT {
 
     // Add/Remove leaf to/from the tree.
     //
-    // Inputs:
+    // Inputs
     //      address - address of leaf to be added.
     //
     //      value - preimage of leaf hash being added.
