@@ -1,0 +1,22 @@
+node_modules
+.env
+
+# Hardhat files
+/cache
+/artifacts
+
+# TypeChain files
+/typechain
+/typechain-types
+
+# solidity-coverage files
+/coverage
+/coverage.json
+
+# Hardhat ignore all deployments by default
+# Add exceptions for specific chain-types if needed...
+ignition/deployments/**
+
+# Avalanche fuji
+!ignition/deployments/chain-43113/
+!ignition/deployments/chain-43113/**
