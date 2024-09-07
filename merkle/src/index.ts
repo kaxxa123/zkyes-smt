@@ -369,6 +369,7 @@ proveButton.on('press', () => {
     treeInfo.setContent(
         `Root: ${proof.root}\n` +
         `Leaf: ${proof.leaf}\n` +
+        `Address: ${leaf} (${leaf.toString(2).padStart(Number(tree.LEVELS_TOTAL()), '0')})\n` +
         'Siblings: \n   ' +
         proof.siblings.toString().replace(/,/g, '\n   '));
     screen.render();
