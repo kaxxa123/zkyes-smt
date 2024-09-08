@@ -28,7 +28,7 @@ export class SMT {
     constructor(lvl: bigint, sorthash: boolean = false) {
         this._levels = lvl;
         this._sorthash = sorthash;
-        this._hashZero = this._hash(EMPTY_LEAF);
+        this._hashZero = this.hash(EMPTY_LEAF);
         this._hashZeroTree = this._computeZeroTree();
         this._tree = new Map();
         this._root = this._hashZeroTree[0];
@@ -73,18 +73,19 @@ export class SMT {
     }
 
     // If the input string is not empty, front-pad the string
-    // with zeros to reach a length of 64.
+    // with zeros such that the string is a factor of 64 (32-bytes).
     //
     // Inputs 
     //      input - input to be hashed
-    private _pad32bytes(input: string): string {
-        if (input.length > 64)
-            throw "Input hex string too long.";
-
+    normalizePreimage(input: string): string {
         if (input.length === 0)
             return "";
 
-        return input.padStart(64, '0')
+        if (input.length % 64 == 0)
+            return input;
+
+        // Add enough zeros to make the hash a multiple of 32-bytes
+        return input.padStart(64 + input.length - (input.length % 64), '0')
     }
 
     // Sort the two inputs, smallest first ready for 
@@ -117,13 +118,13 @@ export class SMT {
     //
     // Returns
     //      hash(left | right)
-    private _hash(left: string, right: string = ""): string {
+    hash(left: string, right: string = ""): string {
         if (this._sorthash) {
             [left, right] = this._sortHashInputs(left, right);
         }
 
         // Will always generate a 256-bit hash with leading zeros (if needed)
-        return ethers.keccak256("0x" + this._pad32bytes(left) + this._pad32bytes(right)).slice(2);
+        return ethers.keccak256("0x" + this.normalizePreimage(left) + this.normalizePreimage(right)).slice(2);
     }
 
     // Computes the node hash for all possible
@@ -140,7 +141,7 @@ export class SMT {
         // Zero Leaf
         cache.push(lastHash)
         for (let level = 0; level < this.LEVELS_TOTAL(); ++level) {
-            lastHash = this._hash(lastHash, lastHash)
+            lastHash = this.hash(lastHash, lastHash)
             cache.push(lastHash)
         }
 
@@ -260,7 +261,7 @@ export class SMT {
             throw "Invalid leaf address!";
 
         //Hash of leaf value...
-        let newValue = this._hash(value)
+        let newValue = this.hash(value)
 
         for (let pos = 0; pos < this.LEVELS_TOTAL(); ++pos) {
 
@@ -269,11 +270,11 @@ export class SMT {
             // 1 =>    Read Left, Change Right
             // 0 =>  Change Left,   Read Right
             if (address & bitmask) {
-                newValue = this._hash(siblings[siblings.length - 1 - pos], newValue)
+                newValue = this.hash(siblings[siblings.length - 1 - pos], newValue)
                 // console.log(`Write Right: ${toWrite[toWrite.length - 1]}`)
             }
             else {
-                newValue = this._hash(newValue, siblings[siblings.length - 1 - pos])
+                newValue = this.hash(newValue, siblings[siblings.length - 1 - pos])
                 // console.log(`Write Left: ${toWrite[toWrite.length - 1]}`)
             }
 

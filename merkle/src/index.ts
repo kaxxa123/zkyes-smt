@@ -3,14 +3,17 @@ import { EMPTY_LEAF } from './sparse_merkle'
 import { TreeDisplay, TreeBox } from './draw_merkle'
 
 const PRETTY = true;
-const SORT_HASH = true;
+const SORT_HASH = false;
 const VIEW_WIDTH = 100;
 const INIT_LEVEL = 5;
+const TEXTBOX_HEIGHT = 3;
+const BUTTON_HEIGHT = 2;
 
-let horiz_offset = 0;
-let tree = new TreeDisplay(BigInt(INIT_LEVEL), SORT_HASH, PRETTY);
-let tree_data: TreeBox = tree.drawTree()
-let view_data = tree.viewTree(horiz_offset, VIEW_WIDTH, tree_data);
+let g_horiz_offset = 0;
+let g_tree = new TreeDisplay(BigInt(INIT_LEVEL), SORT_HASH, PRETTY);
+let g_tree_data: TreeBox = g_tree.drawTree()
+let g_view_data = g_tree.viewTree(g_horiz_offset, VIEW_WIDTH, g_tree_data);
+let g_control_top = 1;
 
 // Create a screen object
 const screen = blessed.screen({
@@ -34,9 +37,9 @@ const formInputs = blessed.form({
 // Mekle Depth
 const levelInput = blessed.textbox({
     parent: formInputs,
-    top: 1,
+    top: g_control_top,
     left: 1,
-    height: 3,
+    height: TEXTBOX_HEIGHT,
     width: 20,
     mouse: true,
     name: 'Levels',
@@ -45,10 +48,11 @@ const levelInput = blessed.textbox({
     border: { type: 'line' },
     label: 'Levels'
 });
+g_control_top += TEXTBOX_HEIGHT;
 
 const levelButton = blessed.button({
     parent: formInputs,
-    top: 4,
+    top: g_control_top,
     left: 1,
     mouse: true,
     keys: true,
@@ -66,24 +70,40 @@ const levelButton = blessed.button({
         }
     }
 });
+g_control_top += BUTTON_HEIGHT;
 
 // Mekle Leaf
 const leafInput = blessed.textbox({
     parent: formInputs,
-    top: 6,
+    top: g_control_top,
     left: 1,
-    height: 3,
+    height: TEXTBOX_HEIGHT,
     width: 20,
     mouse: true,
-    name: 'Leaf',
+    name: 'leafIdx',
     inputOnFocus: true,
     border: { type: 'line' },
-    label: 'Leaf'
+    label: 'Leaf Idx'
 });
+g_control_top += TEXTBOX_HEIGHT;
+
+const valueInput = blessed.textbox({
+    parent: formInputs,
+    top: g_control_top,
+    left: 1,
+    height: TEXTBOX_HEIGHT,
+    width: 20,
+    mouse: true,
+    name: 'leafValue',
+    inputOnFocus: true,
+    border: { type: 'line' },
+    label: 'Leaf Value'
+});
+g_control_top += TEXTBOX_HEIGHT;
 
 const addButton = blessed.button({
     parent: formInputs,
-    top: 9,
+    top: g_control_top,
     left: 1,
     mouse: true,
     keys: true,
@@ -101,10 +121,11 @@ const addButton = blessed.button({
         }
     }
 });
+g_control_top += BUTTON_HEIGHT;
 
 const delButton = blessed.button({
     parent: formInputs,
-    top: 11,
+    top: g_control_top,
     left: 1,
     mouse: true,
     keys: true,
@@ -122,10 +143,11 @@ const delButton = blessed.button({
         }
     }
 });
+g_control_top += BUTTON_HEIGHT;
 
 const proveButton = blessed.button({
     parent: formInputs,
-    top: 13,
+    top: g_control_top,
     left: 1,
     mouse: true,
     keys: true,
@@ -143,6 +165,7 @@ const proveButton = blessed.button({
         }
     }
 });
+g_control_top += BUTTON_HEIGHT;
 
 const closeButton = blessed.button({
     parent: formInputs,
@@ -277,12 +300,36 @@ function validatedLeaf(): number {
         return -1;
     }
 
-    if ((leaf < tree.lowerIndex()) || (leaf > tree.upperIndex())) {
-        showError(`Leaf out of range! Valid range [${tree.lowerIndex()},${tree.upperIndex()}]`);
+    if ((leaf < g_tree.lowerIndex()) || (leaf > g_tree.upperIndex())) {
+        showError(`Leaf out of range! Valid range [${g_tree.lowerIndex()},${g_tree.upperIndex()}]`);
         return -1;
     }
 
     return leaf;
+}
+
+function validatedValue(): string {
+    let valueStr = valueInput.getValue().trim();
+
+    if (valueStr.length === 0)
+        return valueStr;
+
+    if (valueStr.startsWith("0x")) {
+        valueStr = valueStr.slice(2);
+
+        if (valueStr.length === 0) {
+            showError("Invalid value! Specify hex value or leave empty to use leaf index");
+            return "z";
+        }
+    }
+
+    let regex = /^[0-9a-fA-F]+$/;
+    if (!regex.test(valueStr)) {
+        showError("Invalid value! Specify hex value or leave empty to use leaf index");
+        return "z";
+    }
+
+    return valueStr;
 }
 
 // ===============================================
@@ -301,16 +348,16 @@ closeButton.on('press', () => {
 treeBox.key(['left', 'right'], function (ch, key) {
 
     if (key.name === 'right') {
-        if (horiz_offset < tree_data.width - VIEW_WIDTH)
-            horiz_offset += 1;
+        if (g_horiz_offset < g_tree_data.width - VIEW_WIDTH)
+            g_horiz_offset += 1;
 
     } else if (key.name === 'left') {
-        if (horiz_offset > 0)
-            horiz_offset -= 1;
+        if (g_horiz_offset > 0)
+            g_horiz_offset -= 1;
     }
 
-    view_data = tree.viewTree(horiz_offset, VIEW_WIDTH, tree_data);
-    treeBox.setContent(view_data);
+    g_view_data = g_tree.viewTree(g_horiz_offset, VIEW_WIDTH, g_tree_data);
+    treeBox.setContent(g_view_data);
     screen.render();
 });
 
@@ -319,14 +366,14 @@ levelButton.on('press', () => {
     let level = validatedLevel();
     if (level < 0) return;
 
-    if (tree.LEVELS_TOTAL() === BigInt(level))
+    if (g_tree.LEVELS_TOTAL() === BigInt(level))
         return;
 
-    horiz_offset = 0;
-    tree = new TreeDisplay(BigInt(level), SORT_HASH, PRETTY);
-    tree_data = tree.drawTree()
-    view_data = tree.viewTree(horiz_offset, VIEW_WIDTH, tree_data);
-    treeBox.setContent(view_data);
+    g_horiz_offset = 0;
+    g_tree = new TreeDisplay(BigInt(level), SORT_HASH, PRETTY);
+    g_tree_data = g_tree.drawTree()
+    g_view_data = g_tree.viewTree(g_horiz_offset, VIEW_WIDTH, g_tree_data);
+    treeBox.setContent(g_view_data);
     treeInfo.setContent("");
     screen.render();
 });
@@ -336,12 +383,23 @@ addButton.on('press', () => {
     let leaf = validatedLeaf();
     if (leaf < 0) return;
 
-    horiz_offset = 0;
-    let leafHash = tree.addLeaf(BigInt(leaf), leaf.toString(16))
-    tree_data = tree.drawTree()
-    view_data = tree.viewTree(horiz_offset, VIEW_WIDTH, tree_data);
-    treeBox.setContent(view_data);
-    treeInfo.setContent(`Added leaf ${leaf}. ${leafHash}`);
+    let value = validatedValue();
+    if (value == "z") return;
+
+    if (value.length == 0)
+        value = leaf.toString(16);
+
+    value = g_tree.normalizePreimage(value);
+
+    g_horiz_offset = 0;
+    let leafHash = g_tree.addLeaf(BigInt(leaf), value);
+
+    g_tree_data = g_tree.drawTree()
+    g_view_data = g_tree.viewTree(g_horiz_offset, VIEW_WIDTH, g_tree_data);
+    treeBox.setContent(g_view_data);
+    treeInfo.setContent(`Added leaf Index: ${leaf}\n` +
+        `Value: ${value}\n` +
+        `Hash:  ${leafHash}`);
     screen.render();
 });
 
@@ -350,11 +408,11 @@ delButton.on('press', () => {
     let leaf = validatedLeaf();
     if (leaf < 0) return;
 
-    horiz_offset = 0;
-    let leafHash = tree.addLeaf(BigInt(leaf), EMPTY_LEAF)
-    tree_data = tree.drawTree()
-    view_data = tree.viewTree(horiz_offset, VIEW_WIDTH, tree_data);
-    treeBox.setContent(view_data);
+    g_horiz_offset = 0;
+    let leafHash = g_tree.addLeaf(BigInt(leaf), EMPTY_LEAF)
+    g_tree_data = g_tree.drawTree()
+    g_view_data = g_tree.viewTree(g_horiz_offset, VIEW_WIDTH, g_tree_data);
+    treeBox.setContent(g_view_data);
     treeInfo.setContent(`Removed leaf ${leaf}. ${leafHash}`);
     screen.render();
 });
@@ -364,12 +422,12 @@ proveButton.on('press', () => {
     let leaf = validatedLeaf();
     if (leaf < 0) return;
 
-    let proof = tree.getProof(BigInt(leaf));
+    let proof = g_tree.getProof(BigInt(leaf));
 
     treeInfo.setContent(
         `Root: ${proof.root}\n` +
         `Leaf: ${proof.leaf}\n` +
-        `Address: ${leaf} (${leaf.toString(2).padStart(Number(tree.LEVELS_TOTAL()), '0')})\n` +
+        `Address: ${leaf} (${leaf.toString(2).padStart(Number(g_tree.LEVELS_TOTAL()), '0')})\n` +
         'Siblings: \n   ' +
         proof.siblings.toString().replace(/,/g, '\n   '));
     screen.render();
@@ -377,7 +435,7 @@ proveButton.on('press', () => {
 // ===============================================
 
 // Add content to the box that exceeds its size
-treeBox.setContent(view_data);
+treeBox.setContent(g_view_data);
 
 // Render the screen
 screen.render();
