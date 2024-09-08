@@ -124,7 +124,7 @@ export class TreeDisplay extends SMT {
         buffer.write(`| ${node.substring(0, 6)} |`, (vertPos + 1) * totalwidth + horizPos, 'utf8');
         buffer.write(this._BOX_BOTTOM(), (vertPos + 2) * totalwidth + horizPos, 'utf8');
 
-        if (level < this.LEVELS_TOTAL()) {
+        if (BigInt(level) < this.LEVELS_TOTAL()) {
             let childSpace = totalwidth / this._getNodesByLevel(level + 1);
             let start1 = Math.round((childSpace * horizIdx * 2) + childSpace);
             let start2 = Math.round((childSpace * horizIdx * 2) + childSpace / 2);
@@ -133,6 +133,11 @@ export class TreeDisplay extends SMT {
             buffer.write("|", (vertPos + 3) * totalwidth + start1, 'utf8');
             buffer.write(line, (vertPos + 4) * totalwidth + start2, 'utf8');
             buffer.write(this._TEE(), (vertPos + 4) * totalwidth + start1, 'utf8');
+        }
+        else if (BigInt(level) == this.LEVELS_TOTAL()) {
+            let childSpace = totalwidth / this._getNodesByLevel(level + 1);
+            let start1 = Math.round((childSpace * horizIdx * 2) + childSpace);
+            buffer.write(horizIdx.toString(), (vertPos + 3) * totalwidth + start1, 'utf8');
         }
     }
 
@@ -186,8 +191,9 @@ export class TreeDisplay extends SMT {
         const WIDTH = Number((this.upperIndex() + 1n)) * NODE_WIDTH +
             Number(this.upperIndex()) * NODE_HSPACING + NEWLINE_LEN;
 
+        // Tree height + 1 line for the leaf index
         const HEIGHT = NODE_HEIGHT * Number(this.LEVELS_TOTAL() + 1n) +
-            NODE_VSPACING * Number(this.LEVELS_TOTAL());
+            NODE_VSPACING * Number(this.LEVELS_TOTAL()) + 1;
 
         let line = ''.padEnd(WIDTH - NEWLINE_LEN, ' ') + NEWLINE;
 
