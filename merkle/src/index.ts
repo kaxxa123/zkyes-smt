@@ -3,7 +3,7 @@ import { EMPTY_LEAF } from './sparse_merkle'
 import { TreeDisplay, TreeBox } from './draw_merkle'
 
 const PRETTY = true;
-const SORT_HASH = false;
+const SORT_HASH = true;
 const VIEW_WIDTH = 100;
 const INIT_LEVEL = 5;
 const TEXTBOX_HEIGHT = 3;
@@ -14,6 +14,7 @@ let g_tree = new TreeDisplay(BigInt(INIT_LEVEL), SORT_HASH, PRETTY);
 let g_tree_data: TreeBox = g_tree.drawTree()
 let g_view_data = g_tree.viewTree(g_horiz_offset, VIEW_WIDTH, g_tree_data);
 let g_control_top = 1;
+let g_sortHashes = SORT_HASH;
 
 // Create a screen object
 const screen = blessed.screen({
@@ -69,6 +70,16 @@ const levelButton = blessed.button({
             bg: 'cyan'
         }
     }
+});
+g_control_top += BUTTON_HEIGHT;
+
+const sortHashCheckbox = blessed.checkbox({
+    parent: formInputs,
+    top: g_control_top,
+    left: 1,
+    mouse: true,
+    content: 'Sorted hashes',
+    checked: SORT_HASH
 });
 g_control_top += BUTTON_HEIGHT;
 
@@ -274,6 +285,17 @@ function showError(error: string) {
     screen.render();
 }
 
+function reinitTree(levels: bigint, sort: boolean) {
+    g_horiz_offset = 0;
+    g_sortHashes = sort;
+    g_tree = new TreeDisplay(levels, g_sortHashes, PRETTY);
+    g_tree_data = g_tree.drawTree()
+    g_view_data = g_tree.viewTree(g_horiz_offset, VIEW_WIDTH, g_tree_data);
+    treeBox.setContent(g_view_data);
+    treeInfo.setContent(`Tree reinit! Levels: ${levels}, Sorted Hashes: ` + (sort ? "Yes" : "No"));
+    screen.render();
+}
+
 function validatedLevel(): number {
     let levelStr = levelInput.getValue()
     let level = Number(levelStr)
@@ -361,6 +383,16 @@ treeBox.key(['left', 'right'], function (ch, key) {
     screen.render();
 });
 
+sortHashCheckbox.on('check', () => {
+    if (g_sortHashes) return;
+    reinitTree(g_tree.LEVELS_TOTAL(), true);
+});
+
+sortHashCheckbox.on('uncheck', () => {
+    if (!g_sortHashes) return;
+    reinitTree(g_tree.LEVELS_TOTAL(), false);
+});
+
 // Change tree size
 levelButton.on('press', () => {
     let level = validatedLevel();
@@ -369,13 +401,7 @@ levelButton.on('press', () => {
     if (g_tree.LEVELS_TOTAL() === BigInt(level))
         return;
 
-    g_horiz_offset = 0;
-    g_tree = new TreeDisplay(BigInt(level), SORT_HASH, PRETTY);
-    g_tree_data = g_tree.drawTree()
-    g_view_data = g_tree.viewTree(g_horiz_offset, VIEW_WIDTH, g_tree_data);
-    treeBox.setContent(g_view_data);
-    treeInfo.setContent("");
-    screen.render();
+    reinitTree(BigInt(level), g_sortHashes);
 });
 
 // Add leaf
