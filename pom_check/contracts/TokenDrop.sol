@@ -19,22 +19,44 @@ contract TokenDrop {
         merkleRoot = merkleRoot_;
     }
 
+    function preimage(
+        address account,
+        uint256 amount
+    ) public pure returns (bytes memory) {
+        return abi.encode(account, amount);
+    }
+
+    function hash(bytes calldata data) public pure returns (bytes32) {
+        return keccak256(data);
+    }
+
+    function hashpair(
+        address account,
+        uint256 amount
+    ) public pure returns (bytes32) {
+        return keccak256(preimage(account, amount));
+    }
+
     function claim(
         address account,
         uint256 amount,
         bytes32[] calldata merkleProof
     ) external {
-        require(!isClaimed[account], ErrAlreadyClaimed());
+        // Hardhat doesn't yet support Errors with require.
+        // If a clause fails we won't be shown the error info.
+        // So we have to drop their use for this test project...
+        require(!isClaimed[account], "ErrAlreadyClaimed()");
 
-        bytes32 node = keccak256(abi.encodePacked(account, amount));
+        // Encode value as two 32-byte values...
+        bytes32 node = hashpair(account, amount);
         bool isValidProof = MerkleProof.verifyCalldata(
             merkleProof,
             merkleRoot,
             node
         );
-        require(isValidProof, InvalidProof());
+        require(isValidProof, "InvalidProof()");
 
         isClaimed[account] = true;
-        require(IERC20(token).transfer(account, amount), TransferFailed());
+        require(IERC20(token).transfer(account, amount), "TransferFailed()");
     }
 }
