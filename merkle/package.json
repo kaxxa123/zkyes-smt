@@ -6,7 +6,8 @@
   "scripts": {
     "build": "rm ./build -rf && tsc",
     "test": "node ./build/src/index.js",
-    "quick": "node ./build/src/index2.js"
+    "start": "node ./build/src/index.js",
+    "compute": "node ./build/src/index2.js"
   },
   "keywords": [],
   "author": "",

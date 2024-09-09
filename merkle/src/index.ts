@@ -19,11 +19,16 @@ let g_sortHashes: boolean;
 let g_tree: TreeDisplay;
 let g_tree_data: TreeBox;
 let g_view_data: string;
+let g_initial_info: string;
 
 async function main() {
     let json_config = await loadConfigOR(CONFIG_JSON, DEFAULT_CONFIG);
     if ((json_config.level < 2) || (json_config.level > 10))
         json_config = DEFAULT_CONFIG;
+
+    if (json_config !== DEFAULT_CONFIG)
+        g_initial_info = `Initialized tree from ${CONFIG_JSON}`;
+    else g_initial_info = `Displaing default tree. Configure custom tree at ${CONFIG_JSON}`;
 
     g_control_top = 1;
     g_horiz_offset = 0;
@@ -477,10 +482,8 @@ async function main() {
         screen.render();
     });
 
-    // Add content to the box that exceeds its size
     treeBox.setContent(g_view_data);
-
-    // Render the screen
+    treeInfo.setContent(g_initial_info);
     screen.render();
 }
 
