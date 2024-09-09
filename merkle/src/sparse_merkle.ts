@@ -39,6 +39,11 @@ export class SMT {
         return this._levels;
     }
 
+    // Is the tree in sorted hash mode?
+    SORT_HASH(): boolean {
+        return this._sorthash;
+    }
+
     // Get hash for an empty leaf.
     HASH_ZERO(): string {
         return this._hashZero;
