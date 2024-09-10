@@ -155,7 +155,7 @@ export class TreeDisplay extends SMT {
     //
     //      buffer - buffer to which the subtree is to be written.
     _drawTreeLevel(parent: string, level: number, horizIdx: number, totalwidth: number, buffer: Buffer) {
-        if (this.isZeroTree(parent)) {
+        if (this.isZeroTree(parent, level)) {
             this._drawNode("   0  ", level, horizIdx, totalwidth, buffer);
 
             if (level < this.LEVELS_TOTAL()) {

@@ -138,7 +138,8 @@ export class SMT {
     // Returns
     //      Array of hashes of all possible zero subtrees
     //      starting from a zero root and ending with a
-    //      zero leaf.
+    //      zero leaf. Returned array will be 
+    //      (LEVELS_TOTAL+1) long.
     private _computeZeroTree(): string[] {
         const cache = []
         let lastHash = this.HASH_ZERO();
@@ -160,8 +161,8 @@ export class SMT {
     //
     // Returns
     //      true if the hash is one of the zero subtree hashes
-    isZeroTree(hash: string): boolean {
-        return (this._hashZeroTree.indexOf(hash) != -1);
+    isZeroTree(hash: string, level: number): boolean {
+        return (this._hashZeroTree[level] == hash);
     }
 
     // Get leaf lowest index/address.
@@ -203,7 +204,7 @@ export class SMT {
         // Read adjecent nodes
         for (let pos = 0; pos < this.LEVELS_TOTAL(); ++pos) {
 
-            zero = zero || (this.isZeroTree(node));
+            zero = zero || (this.isZeroTree(node, pos));
             if (zero) {
                 node = this.HASH_ZERO_TREE(pos + 1);
                 toRead.push(node);
