@@ -37,6 +37,28 @@ def path_to_key(k):
     return (k & tt256m1).to_bytes(32, 'big')
 
 # Read a key from a given tree
+# 
+# This is not a binary tree. Instead each parent has 16 children.
+# This means that traversing one tree level is equivalent to 
+# jumping 4 levels in a binary tree.
+# 
+# The path still includes all levels we would have in a binary tree
+# however each four bits is a selector within one level.
+# 
+# Thus the loop increments by 4 ==> for i in range(0, 256, 4)
+# 
+# Traversing child nodes involves extracting level selector:
+#               index = (path >> 252) & 15
+# 
+# ...and extracting one of 16, 32-byte child hashes:
+# v = child[32*index: 32*index+32]
+# 
+#                      [___]
+#                        |
+#   ------------------........-----------------
+#   |     |     |                 |     |     |
+# [___] [___] [___]             [___] [___] [___] 
+# 
 def get(db, root, key):
     v = root
     path = key_to_path(key)
@@ -65,6 +87,13 @@ def make_single_key_hash(path, depth, value):
         return sha3(make_single_key_hash(path << 1, depth + 1, value) + zerohashes[depth+1])
 
 # Hash together 16 elements
+# 
+# The function is computing the hash of a 4-level binary tree
+# vals is an array that would initially contain 16 elements
+# vals is reallocated 4 times in each round halfing its size.
+# 
+# In this manner we are hashing adjecent siblings moving from 
+# leafs to root
 def hash_16_els(vals):
     assert len(vals) == 16
     for _ in range(4):

@@ -13,6 +13,8 @@ for k in keys[:1000]:
     r = t1.update(d, r, k, k)
 print("Naive bintree time to update: %.4f" % (time.time() - a))
 print("Root: %s" % binascii.hexlify(r))
+print()
+print()
 
 d = t2.EphemDB()
 r = t2.new_tree(d)
@@ -22,12 +24,15 @@ for k in keys[:1000]:
 print("DB-optimized bintree time to update: %.4f" % (time.time() - a))
 print("Root: %s" % binascii.hexlify(r))
 print("Writes: %d, reads: %d" % (d.writes, d.reads))
+
 d.reads = 0
 for k in keys[:500]:
     assert t2.get(d, r, k) == k
 for k in keys[-500:]:
     assert t2.get(d, r, k) == b'\x00' * 32
 print("Reads: %d" % d.reads)
+print()
+print()
 
 d = t3.EphemDB()
 r = t3.new_tree(d)
