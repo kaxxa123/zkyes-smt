@@ -1,6 +1,12 @@
 export type PoM = {
+    // Tree root hash
     root: string,
+
+    // Leaf node hash for which membership 
+    // is being proven
     leaf: string,
+
+    // Sibling list from levels (root-1) to leaf
     siblings: string[]
 };
 

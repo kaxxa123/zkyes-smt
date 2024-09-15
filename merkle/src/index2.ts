@@ -1,5 +1,5 @@
 import { IMerkle } from "./trees/IMerkle"
-import { SMTNaive } from './trees/naive_merkle'
+import { SMTNaive } from './trees/merkle_naive'
 import { CONFIG_JSON, loadConfig } from './config'
 
 async function main() {
