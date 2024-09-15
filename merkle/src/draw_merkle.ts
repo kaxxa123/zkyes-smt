@@ -1,5 +1,5 @@
-import { MerkleWrapper } from "./IMerkle"
-import { SMTNaive } from './sparse_merkle'
+import { MerkleWrapper } from "./trees/IMerkle"
+import { SMTNaive } from './trees/naive_merkle'
 
 const NODE_WIDTH = 10;
 const NODE_HEIGHT = 3;
