@@ -1,16 +1,9 @@
 import { ethers } from "ethers";
-
-export const EMPTY_LEAF = Buffer.from("null", "utf8").toString('hex');
-
-export type PoM = {
-    root: string,
-    leaf: string,
-    siblings: string[]
-};
+import { PoM, IMerkle } from "./IMerkle"
 
 // A Sparse Merkle Tree allowing to generate proofs-of-membership
 // and proofs-of-non-membership.
-export class SMT {
+export class SMTNaive implements IMerkle {
     private _levels: bigint;
     private _hashZero: string;
     private _hashZeroTree: string[];
@@ -28,72 +21,16 @@ export class SMT {
     constructor(lvl: bigint, sorthash: boolean = false) {
         this._levels = lvl;
         this._sorthash = sorthash;
-        this._hashZero = this.hash(EMPTY_LEAF);
+        this._hashZero = this.hash(this.ZERO_LEAF_VALUE());
         this._hashZeroTree = this._computeZeroTree();
         this._tree = new Map();
         this._root = this._hashZeroTree[0];
     }
 
-    // Get total level count under the root.
-    LEVELS_TOTAL(): bigint {
-        return this._levels;
-    }
+    // =============================================
+    //    Private helpers
 
-    // Is the tree in sorted hash mode?
-    SORT_HASH(): boolean {
-        return this._sorthash;
-    }
-
-    // Get hash for an empty leaf.
-    HASH_ZERO(): string {
-        return this._hashZero;
-    }
-
-    // Get hash for an empty subtree node at a
-    // given level, where level 0 is the root.
-    //
-    // Inputs 
-    //      idx - subtree level
-    HASH_ZERO_TREE(idx: number): string {
-        return this._hashZeroTree[idx];
-    }
-
-    // Get root node hash.
-    ROOT(): string {
-        return this._root;
-    }
-
-    // Get siblings for a given parent node hash. 
-    //
-    // Inputs 
-    //      parent - parent node hash
-    //
-    // Returns
-    //      array with sibling hashes [left, right]
-    //
-    //      undefined if parent does not exist or references
-    //      a leaf node.
-    TREE(parent: string): string[] | undefined {
-        return this._tree.get(parent);
-    }
-
-    // If the input string is not empty, front-pad the string
-    // with zeros such that the string is a factor of 64 (32-bytes).
-    //
-    // Inputs 
-    //      input - input to be hashed
-    normalizePreimage(input: string): string {
-        if (input.length === 0)
-            return "";
-
-        if (input.length % 64 == 0)
-            return input;
-
-        // Add enough zeros to make the hash a multiple of 32-bytes
-        return input.padStart(64 + input.length - (input.length % 64), '0')
-    }
-
-    // Sort the two inputs, smallest first ready for 
+    // Sort the two hash inputs, smallest first ready for 
     // "sorted" hashing mode.
     //
     // Inputs 
@@ -102,7 +39,7 @@ export class SMT {
     //
     // Returns
     //      Array with sorted [left, right] siblings
-    private _sortHashInputs(left: string, right: string): [string, string] {
+    private _sortHashes(left: string, right: string): [string, string] {
         if (right.length === 0)
             return [left, right];
 
@@ -115,25 +52,8 @@ export class SMT {
         return (iright < ileft) ? [right, left] : [left, right];
     }
 
-    // Hash left and right (optional) sibling values.
-    //
-    // Inputs 
-    //      left - left tree sibling
-    //      right - right tree sibling
-    //
-    // Returns
-    //      hash(left | right)
-    hash(left: string, right: string = ""): string {
-        if (this._sorthash) {
-            [left, right] = this._sortHashInputs(left, right);
-        }
-
-        // Will always generate a 256-bit hash with leading zeros (if needed)
-        return ethers.keccak256("0x" + this.normalizePreimage(left) + this.normalizePreimage(right)).slice(2);
-    }
-
-    // Computes the node hash for all possible
-    // "all zero" subtrees.
+    // Compute the node hash for all possible
+    // zero subtrees.
     //
     // Returns
     //      Array of hashes of all possible zero subtrees
@@ -152,27 +72,6 @@ export class SMT {
         }
 
         return cache.reverse();
-    }
-
-    // Check if the input hash is an "all zero" subtree.
-    //
-    // Inputs
-    //      hash - hash to be checked
-    //
-    // Returns
-    //      true if the hash is one of the zero subtree hashes
-    isZeroTree(hash: string, level: number): boolean {
-        return (this._hashZeroTree[level] == hash);
-    }
-
-    // Get leaf lowest index/address.
-    lowerIndex(): bigint {
-        return 0n;
-    }
-
-    // Get leaf highest index/address.
-    upperIndex(): bigint {
-        return (2n ** this.LEVELS_TOTAL()) - 1n;
     }
 
     // Given a leaf address get the siblings
@@ -330,16 +229,71 @@ export class SMT {
         this._root = nodes[0];
     }
 
-    // Add/Remove leaf to/from the tree.
-    //
-    // Inputs
-    //      address - address of leaf to be added.
-    //
-    //      value - preimage of leaf hash being added.
-    //      To remove a leaf set its value to EMPTY_LEAF.
-    //
-    // Returns
-    //      Hash of added leaf
+    // =============================================
+    //    IMerkle public interface
+
+    LEVELS_TOTAL(): bigint {
+        return this._levels;
+    }
+
+    SORTED_HASH(): boolean {
+        return this._sorthash;
+    }
+
+    ZERO_LEAF_VALUE(): string {
+        return Buffer.from("null", "utf8").toString('hex');
+    }
+
+    HASH_ZERO(): string {
+        return this._hashZero;
+    }
+
+    HASH_ZERO_TREE(idx: number): string {
+        return this._hashZeroTree[idx];
+    }
+
+    ROOT(): string {
+        return this._root;
+    }
+
+    TREE(parent: string): string[] | undefined {
+        return this._tree.get(parent);
+    }
+
+    // If the input string is not empty, front-pad it
+    // with zeros to obtain 32-byte alignment.
+    normalizePreimage(input: string): string {
+        if (input.length === 0)
+            return "";
+
+        if (input.length % 64 == 0)
+            return input;
+
+        // Add enough zeros to make the hash a multiple of 32-bytes
+        return input.padStart(64 + input.length - (input.length % 64), '0')
+    }
+
+    hash(left: string, right: string = ""): string {
+        if (this._sorthash) {
+            [left, right] = this._sortHashes(left, right);
+        }
+
+        // Will always generate a 256-bit hash with leading zeros (if needed)
+        return ethers.keccak256("0x" + this.normalizePreimage(left) + this.normalizePreimage(right)).slice(2);
+    }
+
+    isZeroTree(hash: string, level: number): boolean {
+        return (this._hashZeroTree[level] == hash);
+    }
+
+    lowerIndex(): bigint {
+        return 0n;
+    }
+
+    upperIndex(): bigint {
+        return (2n ** this.LEVELS_TOTAL()) - 1n;
+    }
+
     addLeaf(address: bigint, value: string): string {
         let [siblings,] = this._extractSiblings(address, true);
         let newNodes = this._computeUpdatedNodes(address, value, siblings);

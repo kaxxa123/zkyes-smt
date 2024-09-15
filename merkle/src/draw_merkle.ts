@@ -1,4 +1,5 @@
-import { SMT } from './sparse_merkle'
+import { MerkleWrapper } from "./IMerkle"
+import { SMTNaive } from './sparse_merkle'
 
 const NODE_WIDTH = 10;
 const NODE_HEIGHT = 3;
@@ -30,7 +31,7 @@ export type TreeBox = {
 // the tree at the console. It is aware of 
 // scrolling and supports having a small 
 // view window over a large tree.
-export class TreeDisplay extends SMT {
+export class TreeDisplay extends MerkleWrapper {
 
     private _pretty: boolean;
 
@@ -46,7 +47,7 @@ export class TreeDisplay extends SMT {
     //      to smothen the edges of the tree drawing. Otherwise
     //      the output will be limited to ansi characters.
     constructor(lvl: bigint, sorthash: boolean = false, pretty: boolean = false) {
-        super(lvl, sorthash);
+        super(new SMTNaive(lvl, sorthash));
         this._pretty = pretty;
     }
 

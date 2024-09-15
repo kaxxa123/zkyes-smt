@@ -1,5 +1,4 @@
 import blessed from 'blessed';
-import { EMPTY_LEAF } from './sparse_merkle'
 import { TreeDisplay, TreeBox } from './draw_merkle'
 import { CONFIG_JSON, TreeConfig, loadConfigOR } from './config'
 
@@ -103,7 +102,7 @@ async function main() {
         left: 1,
         mouse: true,
         content: 'Sorted hashes',
-        checked: g_tree.SORT_HASH()
+        checked: g_tree.SORTED_HASH()
     });
     g_control_top += BUTTON_HEIGHT;
 
@@ -458,7 +457,7 @@ async function main() {
         if (leaf < 0) return;
 
         g_horiz_offset = 0;
-        let leafHash = g_tree.addLeaf(BigInt(leaf), EMPTY_LEAF)
+        let leafHash = g_tree.addLeaf(BigInt(leaf), g_tree.ZERO_LEAF_VALUE())
         g_tree_data = g_tree.drawTree()
         g_view_data = g_tree.viewTree(g_horiz_offset, VIEW_WIDTH, g_tree_data);
         treeBox.setContent(g_view_data);

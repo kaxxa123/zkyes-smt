@@ -1,11 +1,12 @@
-import { SMT } from './sparse_merkle'
+import { IMerkle } from "./IMerkle"
+import { SMTNaive } from './sparse_merkle'
 import { CONFIG_JSON, loadConfig } from './config'
 
 async function main() {
     let config = await loadConfig(CONFIG_JSON);
     console.log(config);
 
-    let tree = new SMT(BigInt(config.level), config.sort_hash);
+    let tree: IMerkle = new SMTNaive(BigInt(config.level), config.sort_hash);
 
     config.leafs.forEach((leaf) => {
         let hash = tree.addLeaf(BigInt(leaf.index), leaf.value)
