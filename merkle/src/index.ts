@@ -1,12 +1,19 @@
 import blessed from 'blessed';
 import { TreeDisplay, TreeBox } from './draw_merkle'
-import { CONFIG_JSON, TreeConfig, loadConfigOR } from './config'
+import {
+    CONFIG_JSON,
+    TREE_TYPE_DEFAULT,
+    TreeConfig,
+    loadConfigOR,
+    initTreeType
+} from './config'
 
 const PRETTY = true;
 const VIEW_WIDTH = 100;
 const TEXTBOX_HEIGHT = 3;
 const BUTTON_HEIGHT = 2;
 const DEFAULT_CONFIG: TreeConfig = {
+    type: TREE_TYPE_DEFAULT,
     level: 5,
     sort_hash: true,
     leafs: []
@@ -14,6 +21,7 @@ const DEFAULT_CONFIG: TreeConfig = {
 
 let g_horiz_offset: number;
 let g_control_top: number;
+let g_tree_type: string;
 let g_sortHashes: boolean;
 let g_tree: TreeDisplay;
 let g_tree_data: TreeBox;
@@ -31,8 +39,9 @@ async function main() {
 
     g_control_top = 1;
     g_horiz_offset = 0;
+    g_tree_type = json_config.type;
     g_sortHashes = json_config.sort_hash;
-    g_tree = new TreeDisplay(BigInt(json_config.level), json_config.sort_hash, PRETTY);
+    g_tree = new TreeDisplay(initTreeType(g_tree_type, json_config.level, g_sortHashes), PRETTY);
     json_config.leafs.forEach(leaf => {
         g_tree.addLeaf(BigInt(leaf.index), leaf.value);
     })
@@ -309,7 +318,7 @@ async function main() {
     const reinitTree = (levels: bigint, sort: boolean) => {
         g_horiz_offset = 0;
         g_sortHashes = sort;
-        g_tree = new TreeDisplay(levels, g_sortHashes, PRETTY);
+        g_tree = new TreeDisplay(initTreeType(g_tree_type, Number(levels), g_sortHashes), PRETTY);
         g_tree_data = g_tree.drawTree()
         g_view_data = g_tree.viewTree(g_horiz_offset, VIEW_WIDTH, g_tree_data);
         treeBox.setContent(g_view_data);

@@ -1,13 +1,11 @@
 import { IMerkle } from "./trees/IMerkle"
-import { SMTNaive } from './trees/merkle_naive'
-import { CONFIG_JSON, loadConfig } from './config'
+import { CONFIG_JSON, loadConfig, initTreeByConfig } from './config'
 
 async function main() {
     let config = await loadConfig(CONFIG_JSON);
     console.log(config);
 
-    let tree: IMerkle = new SMTNaive(BigInt(config.level), config.sort_hash);
-
+    let tree: IMerkle = initTreeByConfig(config);
     config.leafs.forEach((leaf) => {
         let hash = tree.addLeaf(BigInt(leaf.index), leaf.value)
         console.log(`Added leaf #${leaf.index}`)

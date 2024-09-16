@@ -1,7 +1,15 @@
 import * as fs from "fs";
 import * as util from "util";
 
+import { IMerkle } from "./trees/IMerkle"
+import { SMTNaive } from './trees/merkle_naive'
+import { SMTHashZero } from './trees/merkle_h0'
+
 export const CONFIG_JSON = "./tree_config.json";
+
+export const TREE_TYPE_DEFAULT = "";
+export const TREE_TYPE_NAIVE = "naive";
+export const TREE_TYPE_H0 = "h0";
 
 export type LeafConfig = {
     index: number,
@@ -9,6 +17,7 @@ export type LeafConfig = {
 };
 
 export type TreeConfig = {
+    type: string,
     level: number,
     sort_hash: boolean,
     leafs: LeafConfig[]
@@ -19,8 +28,16 @@ function isLeafConfig(obj: any): obj is LeafConfig {
         typeof obj.value === 'string';
 }
 
+function isValidType(type: string): boolean {
+    return (type === TREE_TYPE_DEFAULT) ||
+        (type === TREE_TYPE_NAIVE) ||
+        (type === TREE_TYPE_H0);
+}
+
 function isTreeConfig(obj: any): obj is TreeConfig {
-    return typeof obj.level === 'number' &&
+    return typeof obj.type === 'string' &&
+        isValidType(obj.type) &&
+        typeof obj.level === 'number' &&
         typeof obj.sort_hash === 'boolean' &&
         Array.isArray(obj.leafs) &&
         obj.leafs.every(isLeafConfig);
@@ -54,4 +71,15 @@ export async function loadConfigOR(path: string, defConfig: TreeConfig): Promise
     }
     catch { }
     return defConfig;
+}
+
+export function initTreeType(type: string, level: number, sort: boolean): IMerkle {
+    if (type === TREE_TYPE_H0)
+        return new SMTHashZero(BigInt(level), sort);
+
+    return new SMTNaive(BigInt(level), sort);
+}
+
+export function initTreeByConfig(config: TreeConfig): IMerkle {
+    return initTreeType(config.type, config.level, config.sort_hash);
 }

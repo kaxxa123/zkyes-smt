@@ -1,5 +1,4 @@
-import { MerkleWrapper } from "./trees/IMerkle"
-import { SMTNaive } from './trees/merkle_naive'
+import { IMerkle, MerkleWrapper } from "./trees/IMerkle"
 
 const NODE_WIDTH = 10;
 const NODE_HEIGHT = 3;
@@ -38,16 +37,13 @@ export class TreeDisplay extends MerkleWrapper {
     // Initialize a TreeDisplay instance
     //
     // Inputs
-    //      lvl - number of node levels under the root node.
-    //
-    //      sorthash - if true, hash(left, right) will first  
-    //      sort the left and right values smallest first (left).
+    //      tree - Tree instance to be displayed
     //
     //      pretty - if true, instance will use unicode characters
     //      to smothen the edges of the tree drawing. Otherwise
     //      the output will be limited to ansi characters.
-    constructor(lvl: bigint, sorthash: boolean = false, pretty: boolean = false) {
-        super(new SMTNaive(lvl, sorthash));
+    constructor(tree: IMerkle, pretty: boolean = false) {
+        super(tree);
         this._pretty = pretty;
     }
 
