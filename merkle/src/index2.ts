@@ -16,12 +16,18 @@ async function main() {
 
     config.leafs.forEach((leaf) => {
         let proof = tree.getProof(BigInt(leaf.index))
+
         console.log()
         console.log(`Proof for leaf ${leaf.index}:`)
         console.log(`   Root: ${proof.root}`)
         console.log(`   Leaf: ${proof.leaf}`)
-        console.log("   Siblings: [leaf to (root-1)]");
-        console.log(proof.siblings.reverse())
+        console.log("   Siblings: [(root+1) to leaf]");
+
+        proof.siblings.forEach((hash, idx) => {
+            if (!tree.isZeroTree(hash, idx + 1))
+                console.log(`      hash[${idx}] = ${hash}`)
+        })
+
         console.log()
     });
 }

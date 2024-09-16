@@ -12,7 +12,7 @@ export const TREE_TYPE_NAIVE = "naive";
 export const TREE_TYPE_H0 = "h0";
 
 export type LeafConfig = {
-    index: number,
+    index: bigint | number | string,
     value: string
 };
 
@@ -24,7 +24,7 @@ export type TreeConfig = {
 };
 
 function isLeafConfig(obj: any): obj is LeafConfig {
-    return typeof obj.index === 'number' &&
+    return (typeof obj.index === 'number' || typeof obj.index === 'string') &&
         typeof obj.value === 'string';
 }
 
@@ -43,6 +43,10 @@ function isTreeConfig(obj: any): obj is TreeConfig {
         obj.leafs.every(isLeafConfig);
 }
 
+function normalizeIndex(config: LeafConfig): bigint {
+    return BigInt(config.index);
+}
+
 export async function loadConfig(path: string): Promise<TreeConfig> {
     let readFile = util.promisify(fs.readFile)
 
@@ -56,9 +60,10 @@ export async function loadConfig(path: string): Promise<TreeConfig> {
         throw `Configuration error: Tree level must be 2 or greater`;
 
     // Check if leaf indexes are in range
-    let MAX = 2 ** json.level;
+    let MAX = 2n ** BigInt(json.level);
     json.leafs.forEach(leaf => {
-        if ((leaf.index < 0) || (leaf.index >= MAX))
+        let idx = normalizeIndex(leaf);
+        if ((idx < 0n) || (idx >= MAX))
             throw `Configuration error: Leaf index out of range ${leaf.index}`;
     })
 

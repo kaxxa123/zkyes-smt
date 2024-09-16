@@ -485,8 +485,8 @@ async function main() {
             `Root: ${proof.root}\n` +
             `Leaf: ${proof.leaf}\n` +
             `Address: ${leaf} (${leaf.toString(2).padStart(Number(g_tree.LEVELS_TOTAL()), '0')})\n` +
-            'Siblings: \n   ' +
-            proof.siblings.reverse().toString().replace(/,/g, '\n   '));
+            'Siblings [(root+1) to leaf]: \n   ' +
+            proof.siblings.toString().replace(/,/g, '\n   '));
         screen.render();
     });
 
