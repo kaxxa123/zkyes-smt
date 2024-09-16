@@ -47,6 +47,22 @@ Some conclusions that standout:
 
     Unless we cache additional information, to correctly use these function we first need to search the leaf with `getNodeByKey` and then choose the appropriate function.
 
+1. The hash of parent nodes is completely non-standard and hard to reproduce off-chain. 
+
+    Instead of hashing together the child node hashes, the node ids are hashed. Ids are unique 64-bit numbers assigned to the node when created.
+
+    ```JS 
+    struct Node {
+        // other fields...
+        uint64 childLeft;
+        uint64 childRight;
+        // other fields...
+    }
+
+    hash2_(
+        tree.nodes[node_.childLeft].nodeHash, 
+        tree.nodes[node_.childRight].nodeHash);
+    ```
 ## struct SMT 
 
 Solarity stores the tree data in a struct of type `SMT`
@@ -394,4 +410,14 @@ function _setNode(
     await tree.getLeafValue(accounts[0])
     await tree.recordBalance(accounts[0], 5n*10n**18n)
     await tree.getLeafValue(accounts[0])
+
+    await tree.recordBalance(accounts[1], 5n*10n**18n)
+    await tree.recordBalance(accounts[2], 5n*10n**18n)
+    await tree.recordBalance(accounts[3], 5n*10n**18n)
+
+    let proof = await tree.pom(accounts[1])
+    
+    proof.siblings.forEach((hash, idx) => {
+        if (hash != '0x0000000000000000000000000000000000000000000000000000000000000000' ) 
+            console.log(`${idx} ` + hash)})
     ```
