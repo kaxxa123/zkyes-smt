@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
-import {PoseidonUnit2L, PoseidonUnit3L} from "./Poseidon.sol";
+// import {PoseidonUnit2L, PoseidonUnit3L} from "./Poseidon.sol";
 import {ArrayUtils} from "./ArrayUtils.sol";
 
 /// @title A sparse merkle tree implementation, which keeps tree history.
@@ -44,6 +44,7 @@ library SmtLib {
      * O  O O  O  <- depth = 2
      */
     struct Data {
+        // AlexZ: Hash to Node mapping.
         mapping(uint256 => Node) nodes;
         RootEntry[] rootEntries;
         mapping(uint256 => uint256[]) rootIndexes; // root => rootEntryIndex[]
@@ -141,7 +142,11 @@ library SmtLib {
      * @param i Index of a leaf
      * @param v Value of a leaf
      */
-    function addLeaf(Data storage self, uint256 i, uint256 v) external onlyInitialized(self) {
+    function addLeaf(
+        Data storage self,
+        uint256 i,
+        uint256 v
+    ) external onlyInitialized(self) {
         Node memory node = Node({
             nodeType: NodeType.LEAF,
             childLeft: 0,
@@ -160,7 +165,9 @@ library SmtLib {
      * @dev Get SMT root history length
      * @return SMT history length
      */
-    function getRootHistoryLength(Data storage self) external view returns (uint256) {
+    function getRootHistoryLength(
+        Data storage self
+    ) external view returns (uint256) {
         return self.rootEntries.length;
     }
 
@@ -195,7 +202,10 @@ library SmtLib {
      * @param nodeHash Hash of a node
      * @return A node struct
      */
-    function getNode(Data storage self, uint256 nodeHash) public view returns (Node memory) {
+    function getNode(
+        Data storage self,
+        uint256 nodeHash
+    ) public view returns (Node memory) {
         return self.nodes[nodeHash];
     }
 
@@ -204,7 +214,10 @@ library SmtLib {
      * @param index A node index.
      * @return SMT proof struct.
      */
-    function getProof(Data storage self, uint256 index) external view returns (Proof memory) {
+    function getProof(
+        Data storage self,
+        uint256 index
+    ) external view returns (Proof memory) {
         return getProofByRoot(self, index, getRoot(self));
     }
 
@@ -214,11 +227,24 @@ library SmtLib {
      * @param historicalRoot Historical SMT roof to get proof for.
      * @return Proof struct.
      */
+    // AlexZ: Proof generation performs a simple sibling extraction exercise.
+    //
+    // The contract performs a leaf short-circuiting optimization as documented
+    // in _addNode()
+    //
+    // On encountering a short-circuited leaf at level x, the proof stops filling
+    // siblings. It rather fills the existence, index, value, auxExistence, auxIndex,
+    // auxValue.
     function getProofByRoot(
         Data storage self,
         uint256 index,
         uint256 historicalRoot
-    ) public view onlyExistingRoot(self, historicalRoot) returns (Proof memory) {
+    )
+        public
+        view
+        onlyExistingRoot(self, historicalRoot)
+        returns (Proof memory)
+    {
         uint256[] memory siblings = new uint256[](self.maxDepth);
         // Solidity does not guarantee that memory vars are zeroed out
         for (uint256 i = 0; i < self.maxDepth; i++) {
@@ -239,6 +265,15 @@ library SmtLib {
         uint256 nextNodeHash = historicalRoot;
         Node memory node;
 
+        // AlexZ: This code shows what the auxiliary leaf params are.
+        // If traversal hits a leaf, we now that traversal will end there
+        // ...at that point we need to check the address/index of the leaf
+        // ...reached. If the index matches the requested proof index than
+        // ...the proof is confirming membership.
+        //
+        // If the index does not match, the requested leaf is empty.
+        // The auxiliary leaf parameters are than filled with whatever leaf
+        // information found.
         for (uint256 i = 0; i <= self.maxDepth; i++) {
             node = getNode(self, nextNodeHash);
             if (node.nodeType == NodeType.EMPTY) {
@@ -300,7 +335,9 @@ library SmtLib {
         return getProofByRoot(self, index, rootInfo.root);
     }
 
-    function getRoot(Data storage self) public view onlyInitialized(self) returns (uint256) {
+    function getRoot(
+        Data storage self
+    ) public view onlyInitialized(self) returns (uint256) {
         return self.rootEntries[self.rootEntries.length - 1].root;
     }
 
@@ -334,7 +371,12 @@ library SmtLib {
     ) public view returns (RootEntryInfo memory) {
         require(blockN <= block.number, "No future blocks allowed");
 
-        return _getRootInfoByTimestampOrBlock(self, blockN, BinarySearchSmtRoots.SearchType.BLOCK);
+        return
+            _getRootInfoByTimestampOrBlock(
+                self,
+                blockN,
+                BinarySearchSmtRoots.SearchType.BLOCK
+            );
     }
 
     /**
@@ -377,7 +419,12 @@ library SmtLib {
         uint256 root,
         uint256 startIndex,
         uint256 length
-    ) public view onlyExistingRoot(self, root) returns (RootEntryInfo[] memory) {
+    )
+        public
+        view
+        onlyExistingRoot(self, root)
+        returns (RootEntryInfo[] memory)
+    {
         uint256[] storage indexes = self.rootIndexes[root];
         (uint256 start, uint256 end) = ArrayUtils.calculateBounds(
             indexes.length,
@@ -399,7 +446,10 @@ library SmtLib {
      * @param root root
      * return true if root exists
      */
-    function rootExists(Data storage self, uint256 root) public view returns (bool) {
+    function rootExists(
+        Data storage self,
+        uint256 root
+    ) public view returns (bool) {
         return self.rootIndexes[root].length > 0;
     }
 
@@ -410,7 +460,10 @@ library SmtLib {
     function setMaxDepth(Data storage self, uint256 maxDepth) public {
         require(maxDepth > 0, "Max depth must be greater than zero");
         require(maxDepth > self.maxDepth, "Max depth can only be increased");
-        require(maxDepth <= MAX_DEPTH_HARD_CAP, "Max depth is greater than hard cap");
+        require(
+            maxDepth <= MAX_DEPTH_HARD_CAP,
+            "Max depth is greater than hard cap"
+        );
         self.maxDepth = maxDepth;
     }
 
@@ -442,6 +495,10 @@ library SmtLib {
         return self.initialized;
     }
 
+    // ALexz:
+    //  newLeaf - leaf to be added
+    //  nodeHash - hash of node at current iteration level, On adding a new leaf, we start from the root.
+    //  depth - iteration depth where root=0
     function _addLeaf(
         Data storage self,
         Node memory newLeaf,
@@ -452,22 +509,56 @@ library SmtLib {
             revert("Max depth reached");
         }
 
+        // AlexZ: Get node with the given hash.
+        // This is the current tree traversal point.
         Node memory node = self.nodes[nodeHash];
-        uint256 nextNodeHash;
-        uint256 leafHash = 0;
 
+        uint256 nextNodeHash;
+
+        // AlexZ: Calling this leafHash is incorrect
+        // ultimately this will end up with the hash of the
+        // node added on this traversal step, which might be
+        // a MIDDLE node.
+        // uint256 leafHash = 0;
+        uint256 addedNodeHash = 0;
+
+        // AlexZ: Did we hit a zero subtree?
         if (node.nodeType == NodeType.EMPTY) {
-            leafHash = _addNode(self, newLeaf);
-        } else if (node.nodeType == NodeType.LEAF) {
-            leafHash = node.index == newLeaf.index
+            // Add node without any concern of the traversal
+            // level we are in (Depth parameter not passed).
+            addedNodeHash = _addNode(self, newLeaf);
+        }
+        // AlexZ: Did we hit a leaf?
+        // We may hit a leaf at any traversal depth.
+        //
+        // If the current leaf has the same address/index as
+        // the new leaf than replace iy. Otherwise transform the
+        // leaf into a subtree to fit both the current and new
+        // leaf.
+        else if (node.nodeType == NodeType.LEAF) {
+            addedNodeHash = node.index == newLeaf.index
                 ? _addNode(self, newLeaf)
                 : _pushLeaf(self, newLeaf, node, depth);
-        } else if (node.nodeType == NodeType.MIDDLE) {
+        }
+        // AlexZ: Is this an intermediate node?
+        // Recursively traverse the tree and
+        // ...create a new intermediate node with a
+        // ...hash combining the two child subtrees.
+        else if (node.nodeType == NodeType.MIDDLE) {
             Node memory newNodeMiddle;
 
             if ((newLeaf.index >> depth) & 1 == 1) {
-                nextNodeHash = _addLeaf(self, newLeaf, node.childRight, depth + 1);
+                // AlexZ: Add the leaf to the right subtree
+                // ...and get the updated subtree hash.
+                nextNodeHash = _addLeaf(
+                    self,
+                    newLeaf,
+                    node.childRight,
+                    depth + 1
+                );
 
+                // AlexZ: Create a new parent node for the left subtree
+                // and the updated rigth subtree.
                 newNodeMiddle = Node({
                     nodeType: NodeType.MIDDLE,
                     childLeft: node.childLeft,
@@ -476,7 +567,12 @@ library SmtLib {
                     value: 0
                 });
             } else {
-                nextNodeHash = _addLeaf(self, newLeaf, node.childLeft, depth + 1);
+                nextNodeHash = _addLeaf(
+                    self,
+                    newLeaf,
+                    node.childLeft,
+                    depth + 1
+                );
 
                 newNodeMiddle = Node({
                     nodeType: NodeType.MIDDLE,
@@ -487,10 +583,11 @@ library SmtLib {
                 });
             }
 
-            leafHash = _addNode(self, newNodeMiddle);
+            // AlexZ: Add a new parent node and get back its hash.
+            addedNodeHash = _addNode(self, newNodeMiddle);
         }
 
-        return leafHash;
+        return addedNodeHash;
     }
 
     function _pushLeaf(
@@ -499,7 +596,7 @@ library SmtLib {
         Node memory oldLeaf,
         uint256 depth
     ) internal returns (uint256) {
-        // no reason to continue if we are at max possible depth
+        // No reason to continue if we are at max possible depth
         // as, anyway, we exceed the depth going down the tree
         if (depth >= self.maxDepth) {
             revert("Max depth reached");
@@ -545,7 +642,22 @@ library SmtLib {
         return _addNode(self, newNodeMiddle);
     }
 
-    function _addNode(Data storage self, Node memory node) internal returns (uint256) {
+    // AlexZ: Computes the node hash and adds an entry to the hash->node mapping
+    //
+    // Most interestingly, this does not compute the entire chain of hashes as in a
+    // naive implementation. The domain parameter (the extra 1) allows for this.
+    // LEAF: Hash(address | value  | 1) , MIDDLE: Hash(left | right).
+    //
+    // Example:
+    //           [   ] = Hash(V) instead of Hash( Hash( Hash(V) | 0 ) | 0 )
+    //           /    \
+    //        [  ]     [ 0 ]
+    //        /  \
+    //   [ V ]    [ 0 ]
+    function _addNode(
+        Data storage self,
+        Node memory node
+    ) internal returns (uint256) {
         uint256 nodeHash = _getNodeHash(node);
         // We don't have any guarantees if the hash function attached is good enough.
         // So, if the node hash already exists, we need to check
@@ -565,11 +677,26 @@ library SmtLib {
 
     function _getNodeHash(Node memory node) internal pure returns (uint256) {
         uint256 nodeHash = 0;
+
+        // AlexZ: LEAF:  Hash(index | value | 1)
+        // Replacing poseidon with keccak256 to facilitate testing
+        // ...against our client side Merkle tree.
         if (node.nodeType == NodeType.LEAF) {
-            uint256[3] memory params = [node.index, node.value, uint256(1)];
-            nodeHash = PoseidonUnit3L.poseidon(params);
-        } else if (node.nodeType == NodeType.MIDDLE) {
-            nodeHash = PoseidonUnit2L.poseidon([node.childLeft, node.childRight]);
+            nodeHash = uint256(
+                keccak256(abi.encode(node.index, node.value, uint256(1)))
+            );
+
+            // uint256[3] memory params = [node.index, node.value, uint256(1)];
+            // nodeHash = PoseidonUnit3L.poseidon(params);
+        }
+        // AlexZ: MIDDLE: Hash(left | right)
+        else if (node.nodeType == NodeType.MIDDLE) {
+            nodeHash = uint256(
+                keccak256(abi.encode(node.childLeft, node.childRight))
+            );
+            // nodeHash = PoseidonUnit2L.poseidon(
+            // [node.childLeft, node.childRight]
+            // );
         }
         return nodeHash; // Note: expected to return 0 if NodeType.EMPTY, which is the only option left
     }
@@ -584,13 +711,17 @@ library SmtLib {
         return
             RootEntryInfo({
                 root: rootEntry.root,
-                replacedByRoot: isLastRoot ? 0 : self.rootEntries[index + 1].root,
+                replacedByRoot: isLastRoot
+                    ? 0
+                    : self.rootEntries[index + 1].root,
                 createdAtTimestamp: rootEntry.createdAtTimestamp,
                 replacedAtTimestamp: isLastRoot
                     ? 0
                     : self.rootEntries[index + 1].createdAtTimestamp,
                 createdAtBlock: rootEntry.createdAtBlock,
-                replacedAtBlock: isLastRoot ? 0 : self.rootEntries[index + 1].createdAtBlock
+                replacedAtBlock: isLastRoot
+                    ? 0
+                    : self.rootEntries[index + 1].createdAtBlock
             });
     }
 
@@ -599,7 +730,10 @@ library SmtLib {
         uint256 timestampOrBlock,
         BinarySearchSmtRoots.SearchType searchType
     ) internal view returns (RootEntryInfo memory) {
-        (uint256 index, bool found) = self.binarySearchUint256(timestampOrBlock, searchType);
+        (uint256 index, bool found) = self.binarySearchUint256(
+            timestampOrBlock,
+            searchType
+        );
 
         // As far as we always have at least one root entry, we should always find it
         assert(found);
@@ -614,7 +748,11 @@ library SmtLib {
         uint256 _block
     ) internal {
         self.rootEntries.push(
-            RootEntry({root: root, createdAtTimestamp: _timestamp, createdAtBlock: _block})
+            RootEntry({
+                root: root,
+                createdAtTimestamp: _timestamp,
+                createdAtBlock: _block
+            })
         );
 
         self.rootIndexes[root].push(self.rootEntries.length - 1);
@@ -657,7 +795,10 @@ library BinarySearchSmtRoots {
             uint256 midValue = fieldSelector(self.rootEntries[mid], searchType);
             if (midValue == value) {
                 while (mid < self.rootEntries.length - 1) {
-                    uint256 nextValue = fieldSelector(self.rootEntries[mid + 1], searchType);
+                    uint256 nextValue = fieldSelector(
+                        self.rootEntries[mid + 1],
+                        searchType
+                    );
                     if (nextValue == value) {
                         mid++;
                     } else {
