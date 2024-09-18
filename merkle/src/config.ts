@@ -56,8 +56,8 @@ export async function loadConfig(path: string): Promise<TreeConfig> {
         throw `Configuration Error: Incorrect json. ${path}`;
 
     let json = config_data as TreeConfig;
-    if (json.level < 2)
-        throw `Configuration error: Tree level must be 2 or greater`;
+    if ((json.level < 2) || (json.level > 256))
+        throw `Configuration error: Tree level must be within the range [2 to 256]`;
 
     // Check if leaf indexes are in range
     let MAX = 2n ** BigInt(json.level);

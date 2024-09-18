@@ -17,6 +17,10 @@ export class SMTHashZero implements IMerkle {
     //      sorthash - if true, hash(left, right) will first  
     //      sort the left and right values smallest first (left).
     constructor(lvl: bigint, sorthash: boolean = false) {
+
+        if ((lvl < 2) || (lvl > 256))
+            throw `Tree level out of range ${lvl}!`;
+
         this._levels = lvl;
         this._sorthash = sorthash;
         this._tree = new Map();
