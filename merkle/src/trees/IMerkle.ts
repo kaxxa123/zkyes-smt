@@ -11,6 +11,10 @@ export type PoM = {
 };
 
 export interface IMerkle {
+
+    // A descriptive name for the tree type.
+    NAME(): string;
+
     // Get total level count under the root.
     LEVELS_TOTAL(): bigint;
 
@@ -111,6 +115,10 @@ export class MerkleWrapper {
 
     constructor(tree: IMerkle) {
         this._tree = tree;
+    }
+
+    NAME(): string {
+        return this._tree.NAME();
     }
 
     LEVELS_TOTAL(): bigint {

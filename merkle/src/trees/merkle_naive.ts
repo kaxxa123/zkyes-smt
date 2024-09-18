@@ -4,11 +4,23 @@ import { PoM, IMerkle } from "./IMerkle"
 // A Sparse Merkle Tree allowing to generate proofs-of-membership
 // and proofs-of-non-membership.
 export class SMTNaive implements IMerkle {
+    // Number of tree levels under the root
     private _levels: bigint;
+
+    // Hash value for empty (zero) leaf.
     private _hashZero: string;
+
+    // Hash values for empty (zero) subtrees
+    // from root to leaf.
     private _hashZeroTree: string[];
+
+    // Mapping for parent nodes: parent_hash -> [left_hash, right_hash]
     private _tree: Map<string, string[]>;
+
+    // Root hash
     private _root: string;
+
+    // Parent hash should be computed over sorted child hashes
     private _sorthash: boolean;
 
     // Initilze Sparse Merkle Tree instance.
@@ -78,10 +90,9 @@ export class SMTNaive implements IMerkle {
         return cache.reverse();
     }
 
-    // Given a leaf address get the siblings
-    // forming the path to the root. Optionaly 
-    // delete all nodes that will be replaced on 
-    // writing the new leaf value.
+    // Given a leaf address get the siblings forming the path
+    // to the root. Optionaly delete all nodes that will be  
+    // orphaned on writing the new leaf value.
     //
     // Inputs
     //      address - leaf address
@@ -112,31 +123,24 @@ export class SMTNaive implements IMerkle {
                 node = this.HASH_ZERO_TREE(pos + 1);
                 toRead.push(node);
             }
-            // 1 =>    Read Left, Change Right
-            // 0 =>  Change Left,   Read Right
-            else if (address & bitmask) {
-                let subtree = this._tree.get(node);
-
-                if (subtree === undefined)
-                    throw `Node not found in tree! Level ${pos}, Hash: ${node}`;
-
-                if (doDelete)
-                    this._tree.delete(node);
-
-                toRead.push(subtree[0])
-                node = subtree[1]
-            }
             else {
                 let subtree = this._tree.get(node);
-
                 if (subtree === undefined)
                     throw `Node not found in tree! Level ${pos}, Hash: ${node}`;
 
                 if (doDelete)
                     this._tree.delete(node);
 
-                toRead.push(subtree[1])
-                node = subtree[0]
+                // 1 =>    Read Left, Change Right
+                // 0 =>  Change Left,   Read Right
+                if (address & bitmask) {
+                    toRead.push(subtree[0])
+                    node = subtree[1]
+                }
+                else {
+                    toRead.push(subtree[1])
+                    node = subtree[0]
+                }
             }
 
             // next bit
@@ -235,6 +239,9 @@ export class SMTNaive implements IMerkle {
 
     // =============================================
     //    IMerkle public interface
+    NAME(): string {
+        return "Naive Sparse Merkle Tree";
+    }
 
     LEVELS_TOTAL(): bigint {
         return this._levels;

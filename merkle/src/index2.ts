@@ -4,8 +4,12 @@ import { CONFIG_JSON, loadConfig, initTreeByConfig } from './config'
 async function main() {
     let config = await loadConfig(CONFIG_JSON);
     console.log(config);
+    console.log();
 
     let tree: IMerkle = initTreeByConfig(config);
+    console.log(tree.NAME());
+    console.log();
+
     config.leafs.forEach((leaf) => {
         let hash = tree.addLeaf(BigInt(leaf.index), leaf.value)
         console.log(`Added leaf #${leaf.index}`)

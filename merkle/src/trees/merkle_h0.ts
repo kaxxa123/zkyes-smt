@@ -4,9 +4,16 @@ import { PoM, IMerkle } from "./IMerkle"
 // A Sparse Merkle Tree with optimization
 // Hash(zero | Zero) = Zero
 export class SMTHashZero implements IMerkle {
+    // Number of tree levels under the root
     private _levels: bigint;
+
+    // Mapping for parent nodes: parent_hash -> [left_hash, right_hash]
     private _tree: Map<string, string[]>;
+
+    // Root hash
     private _root: string;
+
+    // Parent hash should be computed over sorted child hashes
     private _sorthash: boolean;
 
     // Initilze Sparse Merkle Tree instance.
@@ -52,10 +59,9 @@ export class SMTHashZero implements IMerkle {
         return (iright < ileft) ? [right, left] : [left, right];
     }
 
-    // Given a leaf address get the siblings
-    // forming the path to the root. Optionaly 
-    // delete all nodes that will be replaced on 
-    // writing the new leaf value.
+    // Given a leaf address get the siblings forming the path
+    // to the root. Optionaly delete all nodes that will be  
+    // orphaned on writing the new leaf value.
     //
     // Inputs
     //      address - leaf address
@@ -86,31 +92,24 @@ export class SMTHashZero implements IMerkle {
                 node = this.HASH_ZERO_TREE(pos + 1);
                 toRead.push(node);
             }
-            // 1 =>    Read Left, Change Right
-            // 0 =>  Change Left,   Read Right
-            else if (address & bitmask) {
-                let subtree = this._tree.get(node);
-
-                if (subtree === undefined)
-                    throw `Node not found in tree! Level ${pos}, Hash: ${node}`;
-
-                if (doDelete)
-                    this._tree.delete(node);
-
-                toRead.push(subtree[0])
-                node = subtree[1]
-            }
             else {
                 let subtree = this._tree.get(node);
-
                 if (subtree === undefined)
                     throw `Node not found in tree! Level ${pos}, Hash: ${node}`;
 
                 if (doDelete)
                     this._tree.delete(node);
 
-                toRead.push(subtree[1])
-                node = subtree[0]
+                // 1 =>    Read Left, Change Right
+                // 0 =>  Change Left,   Read Right
+                if (address & bitmask) {
+                    toRead.push(subtree[0])
+                    node = subtree[1]
+                }
+                else {
+                    toRead.push(subtree[1])
+                    node = subtree[0]
+                }
             }
 
             // next bit
@@ -209,6 +208,9 @@ export class SMTHashZero implements IMerkle {
 
     // =============================================
     //    IMerkle public interface
+    NAME(): string {
+        return "H(0|0)=0 optimized Sparse Merkle Tree";
+    }
 
     LEVELS_TOTAL(): bigint {
         return this._levels;

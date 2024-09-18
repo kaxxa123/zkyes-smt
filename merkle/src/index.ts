@@ -49,6 +49,11 @@ async function main() {
     g_tree_data = g_tree.drawTree()
     g_view_data = g_tree.viewTree(g_horiz_offset, VIEW_WIDTH, g_tree_data);
 
+    if (json_config !== DEFAULT_CONFIG)
+        g_initial_info = `Initialized tree from ${CONFIG_JSON}\n${g_tree.NAME()}`;
+    else g_initial_info = `Displaing default tree. Configure custom tree at ${CONFIG_JSON}\n${g_tree.NAME()}`;
+
+
     // ===============================================
     // =========== Visual Screen Elements ============
     const screen = blessed.screen({
