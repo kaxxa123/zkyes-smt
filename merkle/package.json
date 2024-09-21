@@ -5,9 +5,9 @@
   "main": "build/src/index.js",
   "scripts": {
     "build": "rm ./build -rf && tsc",
-    "test": "node ./build/src/index.js",
     "start": "node ./build/src/index.js",
-    "compute": "node ./build/src/index2.js"
+    "compute": "node ./build/src/index2.js",
+    "test_single": "node ./build/src/tests/test_single_leaf.js"
   },
   "keywords": [],
   "author": "",
