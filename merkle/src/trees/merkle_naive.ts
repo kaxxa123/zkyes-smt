@@ -150,13 +150,13 @@ export class SMTNaive implements IMerkle {
         return [toRead, node];
     }
 
-    // Compute the set of node values to be updated
+    // Compute the set of node hashes to be updated
     // on setting the leaf at the given address.
     //
     // Inputs
     //      address - address of leaf being set
     //
-    //      value - value of leaf hash preimage or be set
+    //      value - value of leaf hash preimage to be set
     //
     //      siblings - array of siblings covering the path
     //      from the leaf being set to the root.
@@ -173,23 +173,17 @@ export class SMTNaive implements IMerkle {
         if ((address < this.lowerIndex()) || (address > this.upperIndex()))
             throw "Invalid leaf address!";
 
-        //Hash of leaf value...
+        //Hash leaf value...
         let newValue = this.hash(value)
 
-        for (let pos = 0; pos < this.LEVELS_TOTAL(); ++pos) {
-
+        for (let pos = Number(this.LEVELS_TOTAL()); pos > 0; --pos) {
             toWrite.push(newValue)
 
             // 1 =>    Read Left, Change Right
             // 0 =>  Change Left,   Read Right
-            if (address & bitmask) {
-                newValue = this.hash(siblings[siblings.length - 1 - pos], newValue)
-                // console.log(`Write Right: ${toWrite[toWrite.length - 1]}`)
-            }
-            else {
-                newValue = this.hash(newValue, siblings[siblings.length - 1 - pos])
-                // console.log(`Write Left: ${toWrite[toWrite.length - 1]}`)
-            }
+            newValue = (address & bitmask) ?
+                this.hash(siblings[pos - 1], newValue)
+                : this.hash(newValue, siblings[pos - 1]);
 
             // next bit
             bitmask <<= 1n;
@@ -217,19 +211,15 @@ export class SMTNaive implements IMerkle {
         if (BigInt(siblings.length) != this.LEVELS_TOTAL())
             throw "Unexpected length of siblings array!";
 
-        if (BigInt(nodes.length) != this.LEVELS_TOTAL() + 1n)
+        if (nodes.length != siblings.length + 1)
             throw "Unexpected length of nodes array!";
 
         for (let pos = 0; pos < this.LEVELS_TOTAL(); ++pos) {
-
             // 1 =>    Read Left, Change Right
             // 0 =>  Change Left,   Read Right
-            if (address & bitmask) {
+            if (address & bitmask)
                 this._tree.set(nodes[pos], [siblings[pos], nodes[pos + 1]]);
-            }
-            else {
-                this._tree.set(nodes[pos], [nodes[pos + 1], siblings[pos]]);
-            }
+            else this._tree.set(nodes[pos], [nodes[pos + 1], siblings[pos]]);
 
             // next bit
             bitmask >>= 1n;
