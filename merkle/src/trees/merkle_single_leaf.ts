@@ -230,24 +230,13 @@ export class SMTSingleLeaf implements IMerkle {
                         // Should never happen. That would indicate both
                         // addresses where equal.
                         if (BigInt(pos) == this.LEVELS_TOTAL())
-                            throw "Unexpecgted traversal level";
+                            throw "Unexpected traversal level";
 
+                        // The two leaves are siblings.
                         else if (BigInt(pos + 1) == this.LEVELS_TOTAL()) {
                             toRead.push(subtree[1]);
                         }
 
-                        else if (BigInt(pos + 2) == this.LEVELS_TOTAL()) {
-                            let auxHash = this._singleLeafSubtree(leaf_address, subtree[1], BigInt(pos + 1));
-
-                            // 1 =>    Read Left, Change Right
-                            // 0 =>  Change Left,   Read Right
-                            if (leaf_address & 1n)
-                                auxTree = [auxHash, this.HASH_ZERO(), subtree[1]];
-                            else auxTree = [auxHash, subtree[1], this.HASH_ZERO()];
-
-                            toRead.push(auxHash);
-                            node = this.HASH_ZERO();
-                        }
                         else {
                             let auxHash = this._singleLeafSubtree(leaf_address, subtree[1], BigInt(pos + 1));
                             auxTree = [auxHash, ...subtree];
@@ -353,14 +342,17 @@ export class SMTSingleLeaf implements IMerkle {
         if (parent === this.HASH_ZERO())
             return;
 
-        if (this._logLevel >= LOG_LO)
-            console.log(`${log} | ${parent} -> ` + children)
-
         if ((children.length != 2) && (children.length != 3))
             throw "Invalid tree children array. Invalid length"
 
-        if ((children[0].length == 0) || (children[1].length == 0))
-            throw "Invalid tree children array. Entries cannot be empty."
+        if (this._logLevel >= LOG_LO) {
+            let shrink = children.map(str => {
+                if (str.length <= 11) return str;
+                return ` ${str.slice(0, 4)}...${str.slice(str.length - 4)}`;
+            })
+
+            console.log(`${log} | ${parent} ->` + shrink)
+        }
 
         this._tree.set(parent, children);
     }
@@ -400,11 +392,8 @@ export class SMTSingleLeaf implements IMerkle {
                 throw `Unexpected nodes array length, WITHOUT auxiliary node! Nodes: ${nodes.length}, Sibblings: ${siblings.length}`;
         }
 
-        // Add all PARENT nodes except for the last one.
-        // We process all array entries except for the last 
-        // two, to handle the special single non-zero 
-        // leaf subtree.
-        for (let pos = 0; pos < nodes.length - 2; ++pos) {
+        // Add all parent nodes.
+        for (let pos = 0; pos < siblings.length; ++pos) {
             // 1 =>    Read Left, Change Right
             // 0 =>  Change Left,   Read Right
             if (address & bitmask)
@@ -416,20 +405,13 @@ export class SMTSingleLeaf implements IMerkle {
         }
 
         // Special single non-zero leaf subtree encoding
-        if (BigInt(nodes.length) < this.LEVELS_TOTAL() + 1n)
-            this._tree_set("SHORT ", nodes[nodes.length - 2], [address.toString(16), nodes[nodes.length - 1], "1"]);
-
-        else {
-            // We are at the leaf level. Regular encoding always applies.
-            // Sibling may be missing if ZERO.
-            let lastSibling = (siblings.length + 1 == nodes.length)
-                ? siblings[siblings.length - 1]
-                : this.HASH_ZERO();
-
-            if (address & bitmask)
-                this._tree_set("LAST  ", nodes[nodes.length - 2], [lastSibling, nodes[nodes.length - 1]]);
-            else this._tree_set("LAST  ", nodes[nodes.length - 2], [nodes[nodes.length - 1], lastSibling]);
-        }
+        if (nodes.length === siblings.length + 2)
+            this._tree_set(
+                "SHORT ",
+                nodes[nodes.length - 2],
+                [this.normalizePreimage(address.toString(16)),
+                nodes[nodes.length - 1],
+                this.normalizePreimage("1")]);
 
         // Add node entry for auxiliary subtree
         if (aux.length > 0)

@@ -28,6 +28,7 @@ function reproduce() {
         let leaf1 = tree1.addLeaf(BigInt(addr[0]), addr[1] ? addr[0].toString(16) : tree1.ZERO_LEAF_VALUE());
 
         console.log(`${pos}. Root after ${(addr[1] ? "adding" : "removing")} leaf ${addr[0]} : ${tree1.ROOT()}`)
+        console.log()
 
         if (leaf0 !== leaf1)
             throw "Leaves added/removed did not match!";
