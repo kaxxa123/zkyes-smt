@@ -22,7 +22,7 @@ export type TreeConfig = {
     type: string,
     level: number,
     sort_hash: boolean,
-    leafs: LeafConfig[]
+    leaves: LeafConfig[]
 };
 
 function isLeafConfig(obj: any): obj is LeafConfig {
@@ -42,8 +42,8 @@ function isTreeConfig(obj: any): obj is TreeConfig {
         isValidType(obj.type) &&
         typeof obj.level === 'number' &&
         typeof obj.sort_hash === 'boolean' &&
-        Array.isArray(obj.leafs) &&
-        obj.leafs.every(isLeafConfig);
+        Array.isArray(obj.leaves) &&
+        obj.leaves.every(isLeafConfig);
 }
 
 function normalizeIndex(config: LeafConfig): bigint {
@@ -64,7 +64,7 @@ export async function loadConfig(path: string): Promise<TreeConfig> {
 
     // Check if leaf indexes are in range
     let MAX = 2n ** BigInt(json.level);
-    json.leafs.forEach(leaf => {
+    json.leaves.forEach(leaf => {
         let idx = normalizeIndex(leaf);
         if ((idx < 0n) || (idx >= MAX))
             throw `Configuration error: Leaf index out of range ${leaf.index}`;

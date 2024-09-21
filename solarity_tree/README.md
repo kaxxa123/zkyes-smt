@@ -33,9 +33,9 @@ Some conclusions that standout:
 
 1. The library makes extensive use of recursion. This is not a good practice in Solidity programming, where the maximum stack size is limited. 
 
-    For large SMTs, one should analyze the potential of an attack where leaf operations fails due to stack overflow. Can an attacker add leafs such that to block proof-of-ownership for other leafs?
+    For large SMTs, one should analyze the potential of an attack where leaf operations fails due to stack overflow. Can an attacker add leaves such that to block proof-of-ownership for other leaves?
 
-1. Gas consumption is highly dependent on the current tree size. As new leafs are added, the traversal depth and storage access operations required to add a new leaf increases. Thus tree access becomes more expensive over time. 
+1. Gas consumption is highly dependent on the current tree size. As new leaves are added, the traversal depth and storage access operations required to add a new leaf increases. Thus tree access becomes more expensive over time. 
 
 1. The design is wasteful in storage. This is especially true for the `Node` struct which encapsulates different variables for `MIDDLE` and `LEAF` nodes.
 
@@ -120,7 +120,7 @@ struct Node {
 
 `nodeHash` - Node hash where for... <BR />
  `MIDDLE` nodes `nodeHash = Hash(Left_Hash | Right_Hash)` <BR />
- `LEAF` nodes `nodeHash = Hash(key | value | 1)`. The doc says _1 acts as a domain separator_ i.e. it separates leafs from non-leafs.
+ `LEAF` nodes `nodeHash = Hash(key | value | 1)`. The doc says _1 acts as a domain separator_ i.e. it separates leaves from intermediate nodes.
 
 `key`, `value` - Node address and value in case of a `LEAF` node.
 
@@ -405,7 +405,7 @@ function _setNode(
     let treeFactory = await ethers.getContractFactory("TokenSnapshot")
     let tree = await treeFactory.attach(contract_addrs.DeployModule_TokenSnapshot)
 
-    // Create tree leafs...
+    // Create tree leaves...
     let accounts = await ethers.getSigners()
     await tree.getLeafValue(accounts[0])
     await tree.recordBalance(accounts[0], 5n*10n**18n)

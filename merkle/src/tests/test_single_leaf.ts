@@ -1,7 +1,7 @@
 // SMTSingleLeaf and SMTHashZero should always produce the same root.
 // The two implementations only differ in how they store the tree.
 //
-// Randomly add/remove tree leafs and check that the roots always match.
+// Randomly add/remove tree leaves and check that the roots always match.
 
 import { SMTHashZero } from '../trees/merkle_h0'
 import { SMTSingleLeaf } from '../trees/merkle_single_leaf'
@@ -30,7 +30,7 @@ function reproduce() {
         console.log(`${pos}. Root after ${(addr[1] ? "adding" : "removing")} leaf ${addr[0]} : ${tree1.ROOT()}`)
 
         if (leaf0 !== leaf1)
-            throw "Leafs added/removed did not match!";
+            throw "Leaves added/removed did not match!";
 
         if (tree0.ROOT() !== tree1.ROOT())
             throw "Roots did not match!";
@@ -53,7 +53,7 @@ function main() {
         console.log();
 
         if (leaf0 !== leaf1)
-            throw "Leafs added/removed did not match!";
+            throw "Leaves added/removed did not match!";
 
         if (tree0.ROOT() !== tree1.ROOT())
             throw "Roots did not match!";

@@ -6,7 +6,7 @@ const TokenDropModule = buildModule("TokenDropModule", (m) => {
 
     const drop = m.contract(
         "TokenDrop",
-        // Root for Level=3, Sorted, Leafs Set: 0,1,2,3
+        // Root for Level=3, Sorted, Leaf Set: 0,1,2,3
         [usd, "0xef0f86bd9a12acd5285d712174c8f8035f503428154c4b4a40c2494f32a77b3b"],
         { after: [usd] });
 

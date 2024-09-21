@@ -11,15 +11,15 @@ Multiple Implemenations are included, introducing different optimizations:
                                   /
                             [ e ]
                           /       \
-                    [ d ]           [ 0 ] <-- No child leafs
+                    [ d ]           [ 0 ] <-- No child leaves
                   /       \
-            [ c ]           [ 0 ] <-- No child leafs
+            [ c ]           [ 0 ] <-- No child leaves
           /       \
     [ a ]           [ b ]
                                     
     ```
 
-* [merkle_h0.ts](./src/trees/merkle_h0.ts) - On top of `merkle_naive`, eliminates the computation of zero hashes by setting empty leafs to `H(0 | 0)` and defining this as: <BR /> 
+* [merkle_h0.ts](./src/trees/merkle_h0.ts) - On top of `merkle_naive`, eliminates the computation of zero hashes by setting empty leaves to `H(0 | 0)` and defining this as: <BR /> 
 
     `H(0 | 0) = 0`
 

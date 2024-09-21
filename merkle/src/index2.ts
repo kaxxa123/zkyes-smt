@@ -10,7 +10,7 @@ async function main() {
     console.log(tree.NAME());
     console.log();
 
-    config.leafs.forEach((leaf) => {
+    config.leaves.forEach((leaf) => {
         let hash = tree.addLeaf(BigInt(leaf.index), leaf.value)
         console.log(`Added leaf #${leaf.index}`)
         console.log(`   Hash:  ${hash}`)
@@ -18,7 +18,7 @@ async function main() {
         console.log()
     });
 
-    config.leafs.forEach((leaf) => {
+    config.leaves.forEach((leaf) => {
         let proof = tree.getProof(BigInt(leaf.index))
 
         console.log()

@@ -115,7 +115,7 @@ def make_single_key_hash(path, depth, value):
 
 # Make a root hash of a (sub)tree with two key/value pairs, and save intermediate nodes in the DB
 # 
-# Adds DB nodes in cases where the subtree includes 2 non-zero leafs.
+# Adds DB nodes in cases where the subtree includes 2 non-zero leaves.
 # 
 # Function shows how the value of a single leaf subtree is encoded 
 # with an extra byte.

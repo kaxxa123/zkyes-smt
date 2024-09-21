@@ -93,7 +93,7 @@ def make_single_key_hash(path, depth, value):
 # vals is reallocated 4 times in each round halfing its size.
 # 
 # In this manner we are hashing adjecent siblings moving from 
-# leafs to root
+# leaf to root
 def hash_16_els(vals):
     assert len(vals) == 16
     for _ in range(4):

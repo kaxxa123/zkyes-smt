@@ -77,6 +77,17 @@ export class SMTSingleLeaf implements IMerkle {
     }
 
     // Get the root hash for a single non-zero leaf subtree
+    //
+    // Inputs
+    //      address - address of non-zero leaf
+    //
+    //      hashLeaf - hash of non-zero leaf
+    //
+    //      lvl - subtree root level, where zero is the tree 
+    //      root and  LEVELS_TOTAL() is the leaf level.
+    //
+    // Returns
+    //      subtree hash
     private _singleLeafSubtree(address: bigint, hashLeaf: string, lvl: bigint): string {
         let bitmask = 1n;
         let hashLevel = hashLeaf;
@@ -195,7 +206,7 @@ export class SMTSingleLeaf implements IMerkle {
                         node = subtree[1];
                     }
                     else {
-                        // As long as the paths for the two leafs overlap,
+                        // As long as the paths for the two leaves overlap,
                         // the sibling hash will be zero.
                         for (; pos < this.LEVELS_TOTAL(); ++pos) {
                             if ((address & bitmask) != (leaf_address & bitmask))
@@ -208,7 +219,7 @@ export class SMTSingleLeaf implements IMerkle {
                         // We now have two sibling subtrees, both with a single
                         // non-zero leaf. Get the hash of the sibiling subtree.
                         // Here we need to handle a limit case where the two 
-                        // leafs are siblings.
+                        // leaves are siblings.
                         //
                         //             [ a ]                               [ z ]             
                         //               |                                   |               
@@ -337,7 +348,7 @@ export class SMTSingleLeaf implements IMerkle {
 
     private _tree_set(log: string, parent: string, children: string[]) {
         // Filter out entries whose parent is zero.
-        // This happens because of the way we handle removal of leafs
+        // This happens because of the way we handle removal of leaves
         // which involves setting the leaf to a zero hash.
         if (parent === this.HASH_ZERO())
             return;
@@ -375,7 +386,7 @@ export class SMTSingleLeaf implements IMerkle {
             throw `Unexpected siblings array length: ${siblings.length}!`;
 
         // When an auxiliary node IS included, the sibling list will always have missing 
-        // leafs. We thus expect the nodes array to be terminated with two extra hashes: 
+        // entries. We expect the nodes array to be terminated with two extra hashes: 
         // [..., single_leaf_subtree_hash, leaf_hash]
         if ((aux.length !== 0) && (nodes.length !== siblings.length + 2))
             throw `Unexpected nodes array length, with auxiliary node! Nodes: ${nodes.length}, Siblings: ${siblings.length}`;

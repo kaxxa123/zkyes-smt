@@ -24,7 +24,7 @@ This test was excuted against a Reth node. Some harcoded address values may chan
       {
       "level": 3,
       "sort_hash": true,
-      "leafs": [
+      "leaves": [
             {
                   "index": 0,
                   "value": "000000000000000000000000f39Fd6e51aad88F6F4ce6aB8827279cffFb922660000000000000000000000000000000000000000000000004563918244f40000"

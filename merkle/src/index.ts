@@ -16,7 +16,7 @@ const DEFAULT_CONFIG: TreeConfig = {
     type: TREE_TYPE_DEFAULT,
     level: 5,
     sort_hash: true,
-    leafs: []
+    leaves: []
 };
 
 let g_horiz_offset: number;
@@ -42,7 +42,7 @@ async function main() {
     g_tree_type = json_config.type;
     g_sortHashes = json_config.sort_hash;
     g_tree = new TreeDisplay(initTreeType(g_tree_type, json_config.level, g_sortHashes), PRETTY);
-    json_config.leafs.forEach(leaf => {
+    json_config.leaves.forEach(leaf => {
         g_tree.addLeaf(BigInt(leaf.index), leaf.value);
     })
 
