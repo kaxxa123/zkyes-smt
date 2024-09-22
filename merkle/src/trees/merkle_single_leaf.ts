@@ -256,7 +256,7 @@ export class SMTSingleLeaf implements IMerkle {
 
         if (this._logLevel >= LOG_HI) {
             console.log()
-            console.log(" _extractSiblings | Sibblings: ")
+            console.log(" _extractSiblings | Siblings: ")
             console.log(toRead)
             console.log(" _extractSiblings | leaf: " + node)
             console.log(" _extractSiblings | Auxiliary: ")
@@ -389,7 +389,7 @@ export class SMTSingleLeaf implements IMerkle {
         if (aux.length === 0) {
             if ((nodes.length !== siblings.length + 1) &&
                 (nodes.length !== siblings.length + 2))
-                throw `Unexpected nodes array length, WITHOUT auxiliary node! Nodes: ${nodes.length}, Sibblings: ${siblings.length}`;
+                throw `Unexpected nodes array length, WITHOUT auxiliary node! Nodes: ${nodes.length}, Siblings: ${siblings.length}`;
         }
 
         // Add all parent nodes.
@@ -502,6 +502,14 @@ export class SMTSingleLeaf implements IMerkle {
 
     getProof(address: bigint): PoM {
         let [siblings, leaf, _] = this._extractSiblings(address);
+
+        // Siblings array is truncated leaving out 
+        // trailing zero hashes. For consistency 
+        // with other implementations we add the
+        // missing entries.
+        for (let pos = siblings.length; pos < this.LEVELS_TOTAL(); ++pos)
+            siblings.push(this.HASH_ZERO());
+
         return { root: this.ROOT(), leaf, siblings };
     }
 }
