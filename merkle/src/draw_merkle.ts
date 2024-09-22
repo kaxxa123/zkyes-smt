@@ -141,7 +141,15 @@ export class TreeDisplay extends MerkleWrapper {
     // A recursive function that draws the tree from the given parent node.
     //
     // Inputs
-    //      parent - parent node hash for which the subtree is to be drawn
+    //      nodeHash - Depending on traversal type, one of the following:
+    //            1. Parent node hash for which the subtree is to be drawn.
+    //            2. Leaf hash of a short-circuited single non-zero leaf
+    //               subtree.
+    //
+    //      shortAddr - Depending on traversal type, one of the following:
+    //              1. Leaf address of a short-circuited single non-zero leaf 
+    //                 subtree. 
+    //              2. Otherwise set this to -1
     //
     //      level - parent node level, where zero is the root.
     //
@@ -151,23 +159,46 @@ export class TreeDisplay extends MerkleWrapper {
     //      This is the width taken to fit all the leaf nodes of a tree.
     //
     //      buffer - buffer to which the subtree is to be written.
-    _drawTreeLevel(parent: string, level: number, horizIdx: number, totalwidth: number, buffer: Buffer) {
-        if (this.isZeroTree(parent, level)) {
+    private _drawTreeLevel(
+        nodeHash: string,
+        shortAddr: bigint,
+        level: number,
+        horizIdx: number,
+        totalwidth: number,
+        buffer: Buffer) {
+
+        if (shortAddr >= 0n) {
+            if (BigInt(level) < this.LEVELS_TOTAL()) {
+                this._drawNode("   x  ", level, horizIdx, totalwidth, buffer);
+
+                this._drawTreeLevel(nodeHash, shortAddr, level + 1, horizIdx * 2, totalwidth, buffer)
+                this._drawTreeLevel(nodeHash, shortAddr, level + 1, horizIdx * 2 + 1, totalwidth, buffer)
+            }
+            else if (shortAddr != BigInt(horizIdx))
+                this._drawNode("   x  ", level, horizIdx, totalwidth, buffer);
+            else
+                this._drawNode(nodeHash, level, horizIdx, totalwidth, buffer);
+        }
+        else if (this.isZeroTree(nodeHash, level)) {
             this._drawNode("   0  ", level, horizIdx, totalwidth, buffer);
 
             if (level < this.LEVELS_TOTAL()) {
-                this._drawTreeLevel(this.HASH_ZERO_TREE(level + 1), level + 1, horizIdx * 2, totalwidth, buffer)
-                this._drawTreeLevel(this.HASH_ZERO_TREE(level + 1), level + 1, horizIdx * 2 + 1, totalwidth, buffer)
+                this._drawTreeLevel(this.HASH_ZERO_TREE(level + 1), -1n, level + 1, horizIdx * 2, totalwidth, buffer)
+                this._drawTreeLevel(this.HASH_ZERO_TREE(level + 1), -1n, level + 1, horizIdx * 2 + 1, totalwidth, buffer)
             }
         }
         else {
-            this._drawNode(parent, level, horizIdx, totalwidth, buffer);
+            this._drawNode(nodeHash, level, horizIdx, totalwidth, buffer);
 
-            let subtree = this.TREE(parent)
-
-            if (subtree !== undefined) {
-                this._drawTreeLevel(subtree[0], level + 1, horizIdx * 2, totalwidth, buffer)
-                this._drawTreeLevel(subtree[1], level + 1, horizIdx * 2 + 1, totalwidth, buffer)
+            let subtree = this.TREE(nodeHash)
+            if (subtree?.length === 2) {
+                this._drawTreeLevel(subtree[0], -1n, level + 1, horizIdx * 2, totalwidth, buffer)
+                this._drawTreeLevel(subtree[1], -1n, level + 1, horizIdx * 2 + 1, totalwidth, buffer)
+            }
+            if (subtree?.length === 3) {
+                let addr = BigInt("0x" + subtree[0])
+                this._drawTreeLevel(subtree[1], addr, level + 1, horizIdx * 2, totalwidth, buffer)
+                this._drawTreeLevel(subtree[1], addr, level + 1, horizIdx * 2 + 1, totalwidth, buffer)
             }
         }
     }
@@ -201,7 +232,7 @@ export class TreeDisplay extends MerkleWrapper {
             buffer.write(line, lineCnt * Buffer.byteLength(line), 'utf8');
         }
 
-        this._drawTreeLevel(this.ROOT(), 0, 0, WIDTH, buffer);
+        this._drawTreeLevel(this.ROOT(), -1n, 0, 0, WIDTH, buffer);
 
         return {
             text: buffer.toString('utf8'),
