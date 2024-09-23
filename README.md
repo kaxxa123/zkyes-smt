@@ -3,6 +3,9 @@
 This repositroy includes research for Sparse Merkle Tree implementations.
 This is a subproject of the zkYes voting solution.
 
+![Merkle UI](./merkle_ui.png)
+
+
 The repository is composed of various sub-projects analyzing previous work as well as our own implementations:
 
 * [vitalik_merkle_optimizations](./vitalik_merkle_optimizations/README.md) - Analysis of the client-side optimizations proposed by Vitalik Buterin.
