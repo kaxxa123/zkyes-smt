@@ -22,7 +22,7 @@ In all the folder includes 3 SMT implementations:
 
     This information allows us to stop traversing the tree and immidiately determine whether or not the traversal will hit the non-zero leaf.
 
-* [new_bintrie_hex.py](./new_bintrie_hex.py) - Implements the single non-zero leaf short-cut optimization just discussed, plus a compression trick. The compression reduces the number of levels sotred by a factor of 4. Instead of storing a full binary tree stucture, a parent is made to point at the set of child-nodes found 4 levels underneath it. So the root will point at the nodes at level 4. Level 4 nodes would then point at their child nodes 4 levels underneath them (found at level 8 of the main tree).
+* [new_bintrie_hex.py](./new_bintrie_hex.py) - Implements the single non-zero leaf short-cut optimization just discussed, plus a compression trick. The compression reduces the number of levels stored by a factor of 4. Instead of storing a full binary tree stucture, a parent is made to point at the set of child-nodes found 4 levels underneath it. So the root will point at the nodes at level 4. Level 4 nodes would then point at their child nodes 4 levels underneath them (found at level 8 of the main tree).
 
     This means that a parent node will point at `2^4 = 16` child-node hashes.
 

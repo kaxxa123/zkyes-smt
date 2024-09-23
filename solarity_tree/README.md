@@ -29,7 +29,7 @@ import "@solarity/solidity-lib/libs/data-structures/SparseMerkleTree.sol";
 
 ## Conclusions
 
-Some conclusions that standout:
+Some conclusions that standout follow. Note that this review is crudely written and further verification is required. The goal here is that of highlighting things to watchout for in case we choose to further adopt this SMT implementation. 
 
 1. The library makes extensive use of recursion. This is not a good practice in Solidity programming, where the maximum stack size is limited. 
 

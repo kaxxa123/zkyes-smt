@@ -532,7 +532,7 @@ library SmtLib {
         // We may hit a leaf at any traversal depth.
         //
         // If the current leaf has the same address/index as
-        // the new leaf than replace iy. Otherwise transform the
+        // the new leaf than replace it. Otherwise transform the
         // leaf into a subtree to fit both the current and new
         // leaf.
         else if (node.nodeType == NodeType.LEAF) {
@@ -606,7 +606,7 @@ library SmtLib {
         bool newLeafBitAtDepth = (newLeaf.index >> depth) & 1 == 1;
         bool oldLeafBitAtDepth = (oldLeaf.index >> depth) & 1 == 1;
 
-        // Check if we need to go deeper if diverge at the depth's bit
+        // We traverse deeper as long as the paths of the two leafs match
         if (newLeafBitAtDepth == oldLeafBitAtDepth) {
             uint256 nextNodeHash = _pushLeaf(self, newLeaf, oldLeaf, depth + 1);
 

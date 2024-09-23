@@ -4,7 +4,9 @@ Implementation of a Sparse Merkle Tree helping to visualize the changes taking p
 
 Multiple Implemenations are included, introducing different optimizations:
 
-* [merkle_naive.ts](./src/trees/merkle_naive.ts) - Zero subtrees are not stored within the tree structure. Instead only the root hash of such a subtree is stored. Thereafter hashes of child nodes are read from a cache of pre-computed hashes.
+## [merkle_naive.ts](./src/trees/merkle_naive.ts)
+
+Zero subtrees are not stored within the tree structure. Instead only the root hash of such a subtree is stored. Thereafter hashes of child nodes are read from a cache of pre-computed hashes.
 
     ```
                                     [ f ]
@@ -19,30 +21,48 @@ Multiple Implemenations are included, introducing different optimizations:
                                     
     ```
 
-* [merkle_h0.ts](./src/trees/merkle_h0.ts) - On top of `merkle_naive`, eliminates the computation of zero hashes by setting empty leaves to `H(0 | 0)` and defining this as: <BR /> 
+## [merkle_h0.ts](./src/trees/merkle_h0.ts)
 
-    `H(0 | 0) = 0`
+On top of `merkle_naive`, eliminates the computation of zero hashes by setting empty leaves to `H(0 | 0)` and defining this as: <BR /> 
 
-    Without this optimization each zero subtree would have a different hash. An empty leaf would have the value `Hash(0)` and a zero subtree one level up would have a  hash of `Hash( Hash(0) | Hash(0) )`
+`H(0 | 0) = 0`
+
+Without this optimization each zero subtree would have a different hash. An empty leaf would have the value `Hash(0)` and a zero subtree one level up would have a  hash of `Hash( Hash(0) | Hash(0) )`
 
 
-* [merkle_single_leaf.ts](./src/trees/merkle_single_leaf.ts) - On top of `merkle_h0`, implements the optimization described by Vitalik and implemented in python [here](../vitalik_merkle_optimizations/new_bintrie_optimized.py).
+## [merkle_single_leaf.ts](./src/trees/merkle_single_leaf.ts)
 
-  The idea is to short-circuit the storage of a subtree with a single non-zero leaf, replacing the subtree with a node that identifies the only non-zero leaf. This information is enough to determine membership/non-membership without persisting all the intermidiate nodes.
+On top of `merkle_h0`, implements the optimization described by Vitalik and implemented in python [here](../vitalik_merkle_optimizations/new_bintrie_optimized.py).
 
-  This is only a storage-level optimization, the root hash doesn't change when compared to an implementation that does not include such an optimization.
+The idea is to short-circuit the storage of a subtree with a single non-zero leaf, replacing the subtree with a node that identifies the only non-zero leaf. This information is enough to determine membership/non-membership without persisting all the intermidiate nodes.
 
-  ```
-                                 [ e ]                                          [ e ]
-                                /     \                                        /     \
-                           [ d ]       [ 0 ]                              [ d ]       [ 0 ]
-                   _______/     \                                     ___/     \
-              [ c ]              [ i ]            ==>            [ c ]          [ i ]              
-             /     \            /     \                         /     \           |
-        [ b ]       [ 0 ]  [ 0 ]       [ h ]               [ b ]       [ 0 ]  [7, g, 1] 
-       /     \                              \             /     \
-  [ a ]       [ f ]                          [ g ]   [ a ]       [ f ]
-    0           1                              7       0           1 
-  ```
+This is only a storage-level optimization, the root hash doesn't change when compared to an implementation that does not include such an optimization.
 
-  Subtree for 7th leaf is replaced by a tripplet `(leaf_address, leaf_hash, 1)`. The `1` helps differentiating the special node encoding. 
+```
+                                [ e ]                                          [ e ]
+                              /     \                                        /     \
+                          [ d ]       [ 0 ]                              [ d ]       [ 0 ]
+                  _______/     \                                     ___/     \
+            [ c ]              [ i ]            ==>            [ c ]          [ i ]              
+            /     \            /     \                         /     \           |
+      [ b ]       [ 0 ]  [ 0 ]       [ h ]               [ b ]       [ 0 ]  [7, g, 1] 
+      /     \                              \             /     \
+[ a ]       [ f ]                          [ g ]   [ a ]       [ f ]
+  0           1                              7       0           1 
+```
+
+Subtree for 7th leaf is replaced by a tripplet `(leaf_address, leaf_hash, 1)`. The `1` helps identifying the special node encoding.
+
+
+## [merkle_single_leaf_ex.ts](./src/trees/merkle_single_leaf_ex.ts)
+
+On top of `merkle_single_leaf`, adds the following:
+
+|                   | merkle_single_leaf  | merkle_single_leaf_ex   |
+|-------------------|---------------------|-------------------------|
+| Leaf element hash | `Hash(value)`       | `Hash(index, value, 1)` |
+| Hash for single non-zero leaf subtree | `Hash(Hash(Hash(value), 0), 0)` | `Hash(index, value, 1)` |
+
+This eliminates the need to iteratively compute the root of short-circuited subtrees.
+
+The `index` and `1` in leaf hashes is important for collision resistance. The `index` ensures uniqueness of leaf preimages. The `1` creates a separate domain for leaf hashes from parent hashes combining two child hashes.
