@@ -5,23 +5,29 @@ export const LOG_HI = 2;
 export const LOG_LO = 1;
 export const LOG_NO = 0;
 
-// A Sparse Merkle Tree with optimization
-// for short-circuiting the storage of single 
-// non-zero leaf subtrees.
-export class SMTSingleLeaf implements IMerkle {
+// A Sparse Merkle Tree with optimization for short-circuiting 
+// the storage of single non-zero leaf subtrees. However the 
+// short-circuiting is NOT transparent. 
+//
+// Assuming the right subtree is composed of a single non-zero 
+// leaf, a regular parent hash is coputed as follows:
+//    Parent = Hash(Hash(Left_Subtree) | Hash(Right_Subtree))
+//
+// In this implementation:
+//    Parent = Hash(Hash(Left_Subtree) | Non_Zero_Leaf_Hash)
+export class SMTSingleLeafEx implements IMerkle {
     // Number of tree levels under the root
     private _levels: bigint;
 
     // Mapping for parent nodes. This can have two formats: 
     // If the parent node has two child nodes:
-    //      parent_hash -> [left_hash, right_hash]
+    //    parent_hash -> [left_hash, right_hash]
     // 
     // If parent is the root of a subtree with one non-zero leaf:
-    //      parent_hash -> [leaf_address, leaf_hash, 1]
+    //    parent_hash -> [leaf_address, leaf_hash, 1]
     //
-    //      Note the parent_hash would still be computed normally as:
-    //      parent_hash = Hash(left_subtree_hash, right_subtree_hash)
-    //
+    //    where parent_hash = leaf_hash
+    //          leaf_hash   = Hash(leaf_address | value | 1)
     private _tree: Map<string, string[]>;
 
     // Root hash
@@ -74,46 +80,6 @@ export class SMTSingleLeaf implements IMerkle {
         let iright = BigInt("0x" + right);
 
         return (iright < ileft) ? [right, left] : [left, right];
-    }
-
-    // Get the root hash for a single non-zero leaf subtree
-    //
-    // Inputs
-    //      address - address of non-zero leaf
-    //
-    //      hashLeaf - hash of non-zero leaf
-    //
-    //      lvl - subtree root level, where zero is the tree 
-    //      root and  LEVELS_TOTAL() is the leaf level.
-    //
-    // Returns
-    //      subtree hash
-    private _singleLeafSubtree(address: bigint, hashLeaf: string, lvl: bigint): string {
-        let bitmask = 1n;
-        let hashLevel = hashLeaf;
-
-        if (hashLeaf != this.HASH_ZERO()) {
-
-            // Repeatedly hash from leaf to subtree root
-            for (let pos = Number(this.LEVELS_TOTAL()); pos > lvl; --pos) {
-                // 1 =>    Read Left, Change Right
-                // 0 =>  Change Left,   Read Right
-                hashLevel = (address & bitmask) ?
-                    this.hash(this.HASH_ZERO(), hashLevel) :
-                    this.hash(hashLevel, this.HASH_ZERO());
-
-                // next bit
-                bitmask <<= 1n;
-            }
-        }
-
-        if (this._logLevel >= LOG_HI) {
-            console.log()
-            console.log(`_singleLeafSubtree | Leaf: ${hashLevel}, Subtree/Level: (${lvl},${hashLevel})`)
-            console.log()
-        }
-
-        return hashLevel;
     }
 
     // Given a leaf address get the siblings forming the path
@@ -238,10 +204,9 @@ export class SMTSingleLeaf implements IMerkle {
                         }
 
                         else {
-                            let auxHash = this._singleLeafSubtree(leaf_address, subtree[1], BigInt(pos + 1));
-                            auxTree = [auxHash, ...subtree];
+                            auxTree = [subtree[1], ...subtree];
 
-                            toRead.push(auxHash);
+                            toRead.push(subtree[1]);
                             node = this.HASH_ZERO();
                         }
                     }
@@ -273,7 +238,8 @@ export class SMTSingleLeaf implements IMerkle {
     // Inputs
     //      address - address of leaf being set
     //
-    //      value - leaf hash preimage
+    //      value - value component of leaf hash preimage
+    //      where leaf_hash = Hash(address | value | 1)
     //
     //      siblings - array of siblings covering the path
     //      from the leaf being set to the root.
@@ -292,8 +258,13 @@ export class SMTSingleLeaf implements IMerkle {
         if ((address < this.lowerIndex()) || (address > this.upperIndex()))
             throw "Invalid leaf address!";
 
-        //Hash leaf value...
-        let hashLeaf = this.hash(value);
+        //Hash leaf as Hash(address | value | 1)
+        let hashLeaf = (value === this.ZERO_LEAF_VALUE()) ?
+            this.HASH_ZERO() :
+            this.hash(
+                this.normalizePreimage(address.toString(16)) +
+                this.normalizePreimage(value) +
+                this.normalizePreimage("1"));
         toWrite.push(hashLeaf)
 
         // Compute hash from the leaf up to the subtree root where this
@@ -302,9 +273,7 @@ export class SMTSingleLeaf implements IMerkle {
         let lvlDiff = this.LEVELS_TOTAL() - BigInt(siblings.length);
 
         if (lvlDiff > 0) {
-            hashLevel = this._singleLeafSubtree(address, hashLeaf, BigInt(siblings.length));
             toWrite.push(hashLevel)
-
             bitmask <<= lvlDiff;
         }
 
@@ -379,7 +348,7 @@ export class SMTSingleLeaf implements IMerkle {
 
         // When an auxiliary node IS included, the sibling list will always have missing 
         // entries. We expect the nodes array to be terminated with two extra hashes: 
-        // [..., single_leaf_subtree_hash, leaf_hash]
+        // [..., single_leaf_subtree_hash, leaf_hash] = [..., leaf_hash, leaf_hash]
         if ((aux.length !== 0) && (nodes.length !== siblings.length + 2))
             throw `Unexpected nodes array length, with auxiliary node! Nodes: ${nodes.length}, Siblings: ${siblings.length}`;
 

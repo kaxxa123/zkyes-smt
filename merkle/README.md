@@ -56,13 +56,43 @@ Subtree for 7th leaf is replaced by a tripplet `(leaf_address, leaf_hash, 1)`. T
 
 ## [merkle_single_leaf_ex.ts](./src/trees/merkle_single_leaf_ex.ts)
 
-On top of `merkle_single_leaf`, adds the following:
+On top of `merkle_single_leaf`, changes the following:
 
 |                   | merkle_single_leaf  | merkle_single_leaf_ex   |
 |-------------------|---------------------|-------------------------|
 | Leaf element hash | `Hash(value)`       | `Hash(index, value, 1)` |
 | Hash for single non-zero leaf subtree | `Hash(Hash(Hash(value), 0), 0)` | `Hash(index, value, 1)` |
 
-This eliminates the need to iteratively compute the root of short-circuited subtrees.
+* Including the `index` at the leaf preimage ensure all leaf preimages are unique.
 
-The `index` and `1` in leaf hashes is important for collision resistance. The `index` ensures uniqueness of leaf preimages. The `1` creates a separate domain for leaf hashes from parent hashes combining two child hashes.
+* Including the `1` at the leaf preimage separates the domains for leaf and parent hashes.
+
+This eliminates the need to iteratively compute the root of short-circuited subtrees. The downside is that the two trees are not compatible and will produce different root hashes.
+
+This construction requires tree pruning on leaf removal. In a naive tree a leaf 
+may be removed simply by setting the leaf hash to the reserved zero hash. This won't be enough here.
+
+Consider the following two trees, both having an identical single non-zero leaf. Yet their roots won't match.
+
+```
+          [ parent ] = leaf_hash                  [ parent ] = Hash(0 | leaf_hash)
+               |                                  /          \                    
+               |                            [ 0 ]           [ leaf_hash ]         
+               |                                                  |               
+  [leaf_address, leaf_hash, 1]                       [leaf_address, leaf_hash, 1] 
+```
+
+Tree pruning ensures a single rapresentation for identical subtrees no matter the order of leaf addition/removal operations.
+
+The need for leaf removal is application specific. We do not predict the need for leaf removal in zkYes and will not support tree pruning. 
+
+__WARNING: merkle_single_leaf_ex does not implement tree pruning. The problem described above can be__
+__reproduced using the merkle ui.__
+
+Reproduce this problem as follows:
+
+1. Start with an unsorted 3 level tree.
+1. Add leaf index 5. Note how the tree root has the same hash as leaf at index 5.
+1. Add leaf index 2.
+1. Remove leaf at index 2.
+1. The new hash will be different from that in step 2.

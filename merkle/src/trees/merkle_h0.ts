@@ -125,7 +125,7 @@ export class SMTHashZero implements IMerkle {
     // Inputs
     //      address - address of leaf being set
     //
-    //      value - value of leaf hash preimage to be set
+    //      value - leaf hash preimage
     //
     //      siblings - array of siblings covering the path
     //      from the leaf being set to the root.

@@ -5,6 +5,7 @@ import { IMerkle } from "./trees/IMerkle"
 import { SMTNaive } from './trees/merkle_naive'
 import { SMTHashZero } from './trees/merkle_h0'
 import { SMTSingleLeaf } from './trees/merkle_single_leaf'
+import { SMTSingleLeafEx } from './trees/merkle_single_leaf_ex'
 
 export const CONFIG_JSON = "./tree_config.json";
 
@@ -12,6 +13,7 @@ export const TREE_TYPE_DEFAULT = "";
 export const TREE_TYPE_NAIVE = "naive";
 export const TREE_TYPE_H0 = "h0";
 export const TREE_TYPE_SHORT = "short";
+export const TREE_TYPE_SHORT_EX = "shortex";
 
 export type LeafConfig = {
     index: bigint | number | string,
@@ -34,7 +36,8 @@ function isValidType(type: string): boolean {
     return (type === TREE_TYPE_DEFAULT) ||
         (type === TREE_TYPE_NAIVE) ||
         (type === TREE_TYPE_H0) ||
-        (type === TREE_TYPE_SHORT);
+        (type === TREE_TYPE_SHORT) ||
+        (type === TREE_TYPE_SHORT_EX);
 }
 
 function isTreeConfig(obj: any): obj is TreeConfig {
@@ -87,6 +90,9 @@ export function initTreeType(type: string, level: number, sort: boolean): IMerkl
 
     else if (type === TREE_TYPE_SHORT)
         return new SMTSingleLeaf(BigInt(level), sort);
+
+    else if (type === TREE_TYPE_SHORT_EX)
+        return new SMTSingleLeafEx(BigInt(level), sort);
 
     return new SMTHashZero(BigInt(level), sort);
 }
