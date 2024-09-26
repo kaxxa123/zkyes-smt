@@ -34,8 +34,10 @@ Some conclusions that standout follow. Note that this review is crudely written 
 1. The library makes extensive use of recursion. This is not a good practice in Solidity programming, where the maximum stack size is limited. 
 
     For large SMTs, one should analyze the potential of an attack where leaf operations fails due to stack overflow. Can an attacker add leaves such that to block proof-of-ownership for other leaves?
-
+    
 1. Gas consumption is highly dependent on the current tree size. As new leaves are added, the traversal depth and storage access operations required to add a new leaf increases. Thus tree access becomes more expensive over time. 
+
+    Even if an overflow is not triggered, one should investigate the risk of a "mini" denial of service attack, by spiking the cost for accessing targeted leaves. High costs could make an application financially infeasible.
 
 1. The design is wasteful in storage. This is especially true for the `Node` struct which encapsulates different variables for `MIDDLE` and `LEAF` nodes.
 
