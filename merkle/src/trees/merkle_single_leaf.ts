@@ -76,6 +76,22 @@ export class SMTSingleLeaf implements IMerkle {
         return (iright < ileft) ? [right, left] : [left, right];
     }
 
+    private _rootMask(): bigint {
+        return 1n << (this.LEVELS_TOTAL() - 1n);
+    }
+
+    private _leafMask(): bigint {
+        return 1n;
+    }
+
+    private _traverseFromRoot(bitmask: bigint, down: bigint): bigint {
+        return bitmask >> down;
+    }
+
+    private _traverseFromLeaf(bitmask: bigint, up: bigint): bigint {
+        return bitmask << up;
+    }
+
     // Get the root hash for a single non-zero leaf subtree
     //
     // Inputs
@@ -89,7 +105,7 @@ export class SMTSingleLeaf implements IMerkle {
     // Returns
     //      subtree hash
     private _singleLeafSubtree(address: bigint, hashLeaf: string, lvl: bigint): string {
-        let bitmask = 1n;
+        let bitmask = this._leafMask();
         let hashLevel = hashLeaf;
 
         if (hashLeaf != this.HASH_ZERO()) {
@@ -103,7 +119,7 @@ export class SMTSingleLeaf implements IMerkle {
                     this.hash(hashLevel, this.HASH_ZERO());
 
                 // next bit
-                bitmask <<= 1n;
+                bitmask = this._traverseFromLeaf(bitmask, 1n);
             }
         }
 
@@ -147,7 +163,7 @@ export class SMTSingleLeaf implements IMerkle {
     //          containing the leaf identified by the address parameter.
     private _extractSiblings(address: bigint, doDelete: boolean = false): [string[], string, string[]] {
         let node = this.ROOT();
-        let bitmask = 1n << (this.LEVELS_TOTAL() - 1n)
+        let bitmask = this._rootMask()
         let toRead: string[] = [];
         let auxTree: string[] = [];
 
@@ -213,7 +229,7 @@ export class SMTSingleLeaf implements IMerkle {
                                 break;
 
                             toRead.push(this.HASH_ZERO())
-                            bitmask >>= 1n;
+                            bitmask = this._traverseFromRoot(bitmask, 1n);
                         }
 
                         // We now have two sibling subtrees, both with a single
@@ -251,7 +267,7 @@ export class SMTSingleLeaf implements IMerkle {
             }
 
             // next bit
-            bitmask >>= 1n;
+            bitmask = this._traverseFromRoot(bitmask, 1n);
         }
 
         if (this._logLevel >= LOG_HI) {
@@ -283,7 +299,7 @@ export class SMTSingleLeaf implements IMerkle {
     //      when tree updates are terminated by a single non-zero 
     //      leaf subtree.
     private _computeUpdatedNodes(address: bigint, value: string, siblings: string[]): string[] {
-        let bitmask = 1n;
+        let bitmask = this._leafMask();
         let toWrite = [];
 
         if (BigInt(siblings.length) > this.LEVELS_TOTAL())
@@ -305,7 +321,7 @@ export class SMTSingleLeaf implements IMerkle {
             hashLevel = this._singleLeafSubtree(address, hashLeaf, BigInt(siblings.length));
             toWrite.push(hashLevel)
 
-            bitmask <<= lvlDiff;
+            bitmask = this._traverseFromLeaf(bitmask, lvlDiff);
         }
 
         // Traverse the remaining levels upwards until we reach the root 
@@ -317,8 +333,7 @@ export class SMTSingleLeaf implements IMerkle {
                 this.hash(hashLevel, siblings[pos - 1]);
 
             // next bit
-            bitmask <<= 1n;
-
+            bitmask = this._traverseFromLeaf(bitmask, 1n);
             toWrite.push(hashLevel)
         }
 
@@ -372,7 +387,7 @@ export class SMTSingleLeaf implements IMerkle {
     //      auxiliary subtree. Empty array otherwise.
     private _addLeafNodes(address: bigint, nodes: string[], siblings: string[], aux: string[]) {
 
-        let bitmask = 1n << (this.LEVELS_TOTAL() - 1n)
+        let bitmask = this._rootMask()
 
         if (BigInt(siblings.length) > this.LEVELS_TOTAL())
             throw `Unexpected siblings array length: ${siblings.length}!`;
@@ -401,7 +416,7 @@ export class SMTSingleLeaf implements IMerkle {
             else this._tree_set("PARENT", nodes[pos], [nodes[pos + 1], siblings[pos]]);
 
             // next bit
-            bitmask >>= 1n;
+            bitmask = this._traverseFromRoot(bitmask, 1n);
         }
 
         // Special single non-zero leaf subtree encoding

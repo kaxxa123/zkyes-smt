@@ -36,6 +36,10 @@ export class SMTSingleLeafEx implements IMerkle {
     // Parent hash should be computed over sorted child hashes
     private _sorthash: boolean;
 
+    // false -> Root-to-Leaf traversal => Read address bits MSB-to-LSB
+    // true ->  Root-to-Leaf traversal => Read address bits LSB-to-MSB
+    private _reverseTraversal: boolean;
+
     private _logLevel: number;
 
     // Initilze Sparse Merkle Tree instance.
@@ -55,6 +59,7 @@ export class SMTSingleLeafEx implements IMerkle {
         this._sorthash = sorthash;
         this._tree = new Map();
         this._root = this.HASH_ZERO();
+        this._reverseTraversal = true;
     }
 
     // =============================================
@@ -80,6 +85,30 @@ export class SMTSingleLeafEx implements IMerkle {
         let iright = BigInt("0x" + right);
 
         return (iright < ileft) ? [right, left] : [left, right];
+    }
+
+    private _rootMask(): bigint {
+        return this._reverseTraversal ?
+            1n :
+            (1n << (this.LEVELS_TOTAL() - 1n));
+    }
+
+    private _leafMask(): bigint {
+        return this._reverseTraversal ?
+            (1n << (this.LEVELS_TOTAL() - 1n)) :
+            1n;
+    }
+
+    private _traverseFromRoot(bitmask: bigint, down: bigint): bigint {
+        return this._reverseTraversal ?
+            bitmask << down :
+            bitmask >> down;
+    }
+
+    private _traverseFromLeaf(bitmask: bigint, up: bigint): bigint {
+        return this._reverseTraversal ?
+            bitmask >> up :
+            bitmask << up;
     }
 
     // Given a leaf address get the siblings forming the path
@@ -113,7 +142,7 @@ export class SMTSingleLeafEx implements IMerkle {
     //          containing the leaf identified by the address parameter.
     private _extractSiblings(address: bigint, doDelete: boolean = false): [string[], string, string[]] {
         let node = this.ROOT();
-        let bitmask = 1n << (this.LEVELS_TOTAL() - 1n)
+        let bitmask = this._rootMask()
         let toRead: string[] = [];
         let auxTree: string[] = [];
 
@@ -179,7 +208,7 @@ export class SMTSingleLeafEx implements IMerkle {
                                 break;
 
                             toRead.push(this.HASH_ZERO())
-                            bitmask >>= 1n;
+                            bitmask = this._traverseFromRoot(bitmask, 1n);
                         }
 
                         // We now have two sibling subtrees, both with a single
@@ -216,7 +245,7 @@ export class SMTSingleLeafEx implements IMerkle {
             }
 
             // next bit
-            bitmask >>= 1n;
+            bitmask = this._traverseFromRoot(bitmask, 1n);
         }
 
         if (this._logLevel >= LOG_HI) {
@@ -249,7 +278,7 @@ export class SMTSingleLeafEx implements IMerkle {
     //      when tree updates are terminated by a single non-zero 
     //      leaf subtree.
     private _computeUpdatedNodes(address: bigint, value: string, siblings: string[]): string[] {
-        let bitmask = 1n;
+        let bitmask = this._leafMask();
         let toWrite = [];
 
         if (BigInt(siblings.length) > this.LEVELS_TOTAL())
@@ -274,7 +303,7 @@ export class SMTSingleLeafEx implements IMerkle {
 
         if (lvlDiff > 0) {
             toWrite.push(hashLevel)
-            bitmask <<= lvlDiff;
+            bitmask = this._traverseFromLeaf(bitmask, lvlDiff);
         }
 
         // Traverse the remaining levels upwards until we reach the root 
@@ -286,8 +315,7 @@ export class SMTSingleLeafEx implements IMerkle {
                 this.hash(hashLevel, siblings[pos - 1]);
 
             // next bit
-            bitmask <<= 1n;
-
+            bitmask = this._traverseFromLeaf(bitmask, 1n);
             toWrite.push(hashLevel)
         }
 
@@ -341,7 +369,7 @@ export class SMTSingleLeafEx implements IMerkle {
     //      auxiliary subtree. Empty array otherwise.
     private _addLeafNodes(address: bigint, nodes: string[], siblings: string[], aux: string[]) {
 
-        let bitmask = 1n << (this.LEVELS_TOTAL() - 1n)
+        let bitmask = this._rootMask()
 
         if (BigInt(siblings.length) > this.LEVELS_TOTAL())
             throw `Unexpected siblings array length: ${siblings.length}!`;
@@ -370,7 +398,7 @@ export class SMTSingleLeafEx implements IMerkle {
             else this._tree_set("PARENT", nodes[pos], [nodes[pos + 1], siblings[pos]]);
 
             // next bit
-            bitmask >>= 1n;
+            bitmask = this._traverseFromRoot(bitmask, 1n);
         }
 
         // Special single non-zero leaf subtree encoding
