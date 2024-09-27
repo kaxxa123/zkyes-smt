@@ -4,7 +4,7 @@ import { expect } from 'chai';
 
 const TREE_DEPTH = 160;
 
-describe("Incorrect Traveral Test", function () {
+describe("Inverted traveral test", function () {
 
     async function deployTreeTest() {
         // Deploy an SMT with depth of 160 such that to have 
