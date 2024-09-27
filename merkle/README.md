@@ -60,6 +60,7 @@ On top of `merkle_single_leaf`, changes the following:
 
 |                   | merkle_single_leaf  | merkle_single_leaf_ex   |
 |-------------------|---------------------|-------------------------|
+| Index reading root-to-leaf traversal  | MSB-to-LSB | LSB-to-MSB   |
 | Leaf element hash | `Hash(value)`       | `Hash(index, value, 1)` |
 | Hash for single non-zero leaf subtree | `Hash(Hash(Hash(value), 0), 0)` | `Hash(index, value, 1)` |
 
@@ -69,10 +70,7 @@ On top of `merkle_single_leaf`, changes the following:
 
 This eliminates the need to iteratively compute the root of short-circuited subtrees. The downside is that the two trees are not compatible and will produce different root hashes.
 
-This construction requires tree pruning on leaf removal. In a naive tree a leaf 
-may be removed simply by setting the leaf hash to the reserved zero hash. This won't be enough here.
-
-Consider the following two trees, both having an identical single non-zero leaf. Yet their roots won't match.
+This construction requires tree pruning on leaf removal. In a naive implementation, a leaf may be removed simply by setting the leaf hash to the reserved zero hash. This won't be enough here. Consider the following two trees, both having an identical single non-zero leaf. Yet their roots won't match.
 
 ```
           [ parent ] = leaf_hash                  [ parent ] = Hash(0 | leaf_hash)

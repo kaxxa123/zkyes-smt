@@ -22,6 +22,11 @@ export interface IMerkle {
     // generating the parent's hash
     SORTED_HASH(): boolean;
 
+    // How does this tree read indexes on traversal?
+    // true  => LSB-to-MSB
+    // false => MSB-to-LSB
+    INVERTED_INDEX(): boolean;
+
     // Empty (zero) leaf preimage.
     ZERO_LEAF_VALUE(): string;
 
@@ -127,6 +132,10 @@ export class MerkleWrapper {
 
     SORTED_HASH(): boolean {
         return this._tree.SORTED_HASH();
+    }
+
+    INVERTED_INDEX(): boolean {
+        return this._tree.INVERTED_INDEX();
     }
 
     ZERO_LEAF_VALUE(): string {

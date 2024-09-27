@@ -420,7 +420,7 @@ export class SMTSingleLeafEx implements IMerkle {
     // =============================================
     //    IMerkle public interface
     NAME(): string {
-        return "Single Leaf Subtree optimized Sparse Merkle Tree";
+        return "Single Leaf Subtree optimized Sparse Merkle Tree. Leaf hash used as sub-tree hash. LSB-to-MSB.";
     }
 
     LEVELS_TOTAL(): bigint {
@@ -429,6 +429,10 @@ export class SMTSingleLeafEx implements IMerkle {
 
     SORTED_HASH(): boolean {
         return this._sorthash;
+    }
+
+    INVERTED_INDEX(): boolean {
+        return this._reverseTraversal;
     }
 
     ZERO_LEAF_VALUE(): string {

@@ -99,6 +99,28 @@ export class TreeDisplay extends MerkleWrapper {
         return 2 ** level; //level 0 => root
     }
 
+    // If the tree is using inverted indexes,
+    // invert the index bits to get the correct index
+    private _adjustIndex(index: number): number {
+        if (!this.INVERTED_INDEX())
+            return index;
+
+        const BIT_CNT = Number(this.LEVELS_TOTAL());
+        let indexBits = index.toString(2)
+
+        // Ensure correct width
+        if (indexBits.length > BIT_CNT)
+            throw "Index out of range";
+
+        else if (indexBits.length < BIT_CNT)
+            indexBits = indexBits.padStart(BIT_CNT, '0')
+
+        // Invert bits
+        indexBits = indexBits.split('').reverse().join('')
+
+        return parseInt(indexBits, 2)
+    }
+
     // Draw a boxed node
     //
     // Inputs
@@ -134,7 +156,7 @@ export class TreeDisplay extends MerkleWrapper {
         else if (BigInt(level) == this.LEVELS_TOTAL()) {
             let childSpace = totalwidth / this._getNodesByLevel(level + 1);
             let start1 = Math.round((childSpace * horizIdx * 2) + childSpace);
-            buffer.write(horizIdx.toString(), (vertPos + 3) * totalwidth + start1, 'utf8');
+            buffer.write(this._adjustIndex(horizIdx).toString(), (vertPos + 3) * totalwidth + start1, 'utf8');
         }
     }
 

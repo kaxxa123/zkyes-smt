@@ -241,6 +241,10 @@ export class SMTNaive implements IMerkle {
         return this._sorthash;
     }
 
+    INVERTED_INDEX(): boolean {
+        return false;
+    }
+
     ZERO_LEAF_VALUE(): string {
         return Buffer.from("null", "utf8").toString('hex');
     }

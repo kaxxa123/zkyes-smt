@@ -210,6 +210,10 @@ export class SMTHashZero implements IMerkle {
         return this._sorthash;
     }
 
+    INVERTED_INDEX(): boolean {
+        return false;
+    }
+
     ZERO_LEAF_VALUE(): string {
         return this.HASH_ZERO() + this.HASH_ZERO();
     }
