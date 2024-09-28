@@ -19,7 +19,7 @@ Run the Merkle Tree UI:
 npm run start
 ```
 
-Merkle trees can be pre-populated by configuring [tree_config.json](./tree_config.json).
+Merkle trees can be pre-populated by configuring [tree_config.json](./tree_config.json). This configuration also allows starting the UI with different SMT implementations.
 
 The UI is limited to a maximum tree depth of 10. However one can compute the root of trees of up to depth 256, by configuring [tree_config.json](./tree_config.json) and running:
 
@@ -29,12 +29,49 @@ npm run compute
 
 <BR />
 
+### tree_config.json
+
+The [tree_config.json](./tree_config.json) is useful in both configuring the initial Merkle UI settings and in quickly computing Merkle roots for a given set of leaves. 
+
+Important Notes:
+* The Merkle tree type setting is only available from `tree_config.json`. Thus one must use this config file to switch the SMT displayed by the Merkle UI.
+
+* The Merkle UI supports a maximum depth of 10. Setting `tree_config.json | "level"` to a greater value will cause the UI to reject the configuration completely and start with default settings.
+
+
+`tree_config.json | "type":` `"naive"` | `"h0"` | `"short"` | `"shortex"`
+
+Select the type of Merkle tree to use. See [here](#merkle-tree-implementations) for a description of each Merkle tree type.
+
+`tree_config.json | "level":` `2` to `256`
+
+Specify the maximum tree depth. When computing Merkle roots with `npm run compute` levels up to `256` may be used. When running the Merkle UI the maximum allowed level value is `10`.
+
+`tree_config.json | "sort_hash":` `true` | `false`
+
+Specify whether the tree should sort sibling hashes when computing parent node hashes. In general it is recommanded to keep this setting to `false`, as it causes a loss of information in terms of leaf position. However the OpenZeppelin Merkle tree impelmentation requires this sorting operation.
+
+`tree_config.json | "leaves": [leaf]` 
+
+`leaf | "index":` `0` to `max_leaf_index`
+
+The leaf index being set where `max_leaf_index = 2^level - 1`.
+
+`leaf | "value":` `hex_string`
+
+The leaf value to be set at the specified leaf index. This value must be a hex string without a leading `0x` prefix. Values will be normalized to 32-byte boundaries, padding them with leading zeros if necessary, and hashed before inserting into the tree. 
+
+
+<BR />
+
 ## Merkle Tree Implementations
 
 These implementations all had the goal not to use recursion. 
  
 
 ### [merkle_naive.ts | SMTNaive](./src/trees/merkle_naive.ts)
+
+To select this implementation within `tree_config.json` set `"type": "naive"`.
 
 Zero subtrees are not stored within the tree structure. Instead only the root hash of such a subtree is stored. Thereafter hashes of child nodes are read from a cache of pre-computed hashes.
 
@@ -55,6 +92,8 @@ Zero subtrees are not stored within the tree structure. Instead only the root ha
 
 ### [merkle_h0.ts | SMTHashZero](./src/trees/merkle_h0.ts)
 
+To select this implementation within `tree_config.json` set `"type": "h0"`.
+
 On top of `merkle_naive`, eliminates the computation of zero hashes by setting empty leaves to `H(0 | 0)` and defining this as: <BR /> 
 
 `H(0 | 0) = 0`
@@ -64,6 +103,8 @@ Without this optimization each zero subtree would have a different hash. An empt
 <BR />
 
 ### [merkle_single_leaf.ts | SMTSingleLeaf](./src/trees/merkle_single_leaf.ts)
+
+To select this implementation within `tree_config.json` set `"type": "short"`.
 
 On top of `merkle_h0`, implements the optimization described by Vitalik and implemented in python [here](../vitalik_merkle_optimizations/new_bintrie_optimized.py).
 
@@ -89,6 +130,8 @@ Subtree for 7th leaf is replaced by a tripplet `(leaf_address, leaf_hash, 1)`. T
 <BR />
 
 ### [merkle_single_leaf_ex.ts | SMTSingleLeafEx](./src/trees/merkle_single_leaf_ex.ts)
+
+To select this implementation within `tree_config.json` set `"type": "shortex"`.
 
 On top of `merkle_single_leaf`, changes the following:
 
