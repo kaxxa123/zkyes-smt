@@ -14,8 +14,8 @@ const TEXTBOX_HEIGHT = 3;
 const BUTTON_HEIGHT = 2;
 const DEFAULT_CONFIG: TreeConfig = {
     type: TREE_TYPE_DEFAULT,
-    level: 5,
-    sort_hash: true,
+    level: 3,
+    sort_hash: false,
     leaves: []
 };
 
