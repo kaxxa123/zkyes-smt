@@ -1,10 +1,40 @@
-# Merkle Tree
+# Sparse Merkle Trees
 
-Implementation of a Sparse Merkle Tree helping to visualize the changes taking place on adding leaves and proof construction.
+1. Implementation of a Sparse Merkle Tree console UI, helping to visualize the changes taking place on adding leaves and proof construction.
 
-Multiple Implemenations are included, introducing different optimizations:
+2. Implemenation of various Sparse Merkle Trees, featuring different optimizations. 
 
-## [merkle_naive.ts](./src/trees/merkle_naive.ts)
+## Merkle Tree UI
+
+To build the Merkle Tree UI follow these steps:
+
+```BASH
+npm install
+npm run build
+```
+
+Run the Merkle Tree UI:
+
+```BASH
+npm run start
+```
+
+Merkle trees can be pre-populated by configuring [tree_config.json](./tree_config.json).
+
+The UI is limited to a maximum tree depth of 10. However one can compute the root of trees of up to depth 256, by configuring [tree_config.json](./tree_config.json) and running:
+
+```BASH
+npm run compute
+```
+
+<BR />
+
+## Merkle Tree Implementations
+
+These implementations all had the goal not to use recursion. 
+ 
+
+### [merkle_naive.ts | SMTNaive](./src/trees/merkle_naive.ts)
 
 Zero subtrees are not stored within the tree structure. Instead only the root hash of such a subtree is stored. Thereafter hashes of child nodes are read from a cache of pre-computed hashes.
 
@@ -21,7 +51,9 @@ Zero subtrees are not stored within the tree structure. Instead only the root ha
                                     
     ```
 
-## [merkle_h0.ts](./src/trees/merkle_h0.ts)
+<BR />
+
+### [merkle_h0.ts | SMTHashZero](./src/trees/merkle_h0.ts)
 
 On top of `merkle_naive`, eliminates the computation of zero hashes by setting empty leaves to `H(0 | 0)` and defining this as: <BR /> 
 
@@ -29,8 +61,9 @@ On top of `merkle_naive`, eliminates the computation of zero hashes by setting e
 
 Without this optimization each zero subtree would have a different hash. An empty leaf would have the value `Hash(0)` and a zero subtree one level up would have a  hash of `Hash( Hash(0) | Hash(0) )`
 
+<BR />
 
-## [merkle_single_leaf.ts](./src/trees/merkle_single_leaf.ts)
+### [merkle_single_leaf.ts | SMTSingleLeaf](./src/trees/merkle_single_leaf.ts)
 
 On top of `merkle_h0`, implements the optimization described by Vitalik and implemented in python [here](../vitalik_merkle_optimizations/new_bintrie_optimized.py).
 
@@ -53,8 +86,9 @@ This is only a storage-level optimization, the root hash doesn't change when com
 
 Subtree for 7th leaf is replaced by a tripplet `(leaf_address, leaf_hash, 1)`. The `1` helps identifying the special node encoding.
 
+<BR />
 
-## [merkle_single_leaf_ex.ts](./src/trees/merkle_single_leaf_ex.ts)
+### [merkle_single_leaf_ex.ts | SMTSingleLeafEx](./src/trees/merkle_single_leaf_ex.ts)
 
 On top of `merkle_single_leaf`, changes the following:
 
