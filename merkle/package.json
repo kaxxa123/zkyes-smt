@@ -23,7 +23,7 @@
   "bugs": {
     "url": "https://github.com/kaxxa123/zkyes-smt/issues"
   },
-  "homepage": "https://github.com/kaxxa123/zkyes-smt/blob/main/merkle/README.md",
+  "homepage": "https://github.com/kaxxa123/zkyes-smt/blob/main/merkle/README_NPMJS.md",
   "devDependencies": {
     "@types/node": "^22.5.1",
     "ts-node": "^10.9.2",
