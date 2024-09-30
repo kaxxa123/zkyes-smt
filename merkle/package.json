@@ -2,11 +2,11 @@
   "name": "merkle",
   "version": "1.0.0",
   "description": "",
-  "main": "build/src/index.js",
+  "main": "build/src/merkle-ui.js",
   "scripts": {
     "build": "rm ./build -rf && tsc",
-    "start": "node ./build/src/index.js",
-    "compute": "node ./build/src/index2.js",
+    "start": "node ./build/src/merkle-ui.js",
+    "compute": "node ./build/src/merkle-compute.js",
     "test_single": "node ./build/src/tests/test_single_leaf.js"
   },
   "keywords": [],
