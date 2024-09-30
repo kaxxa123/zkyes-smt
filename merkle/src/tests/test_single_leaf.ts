@@ -3,6 +3,7 @@
 //
 // Randomly add/remove tree leaves and check that the roots always match.
 
+import { LOG_LEVEL } from "../trees/IMerkle"
 import { SMTHashZero } from '../trees/merkle_h0'
 import { SMTSingleLeaf } from '../trees/merkle_single_leaf'
 
@@ -10,7 +11,7 @@ const LEVEL = 5n;
 const SORT_MODE = false;
 
 const tree0 = new SMTHashZero(LEVEL, SORT_MODE);
-const tree1 = new SMTSingleLeaf(LEVEL, SORT_MODE, 1);
+const tree1 = new SMTSingleLeaf(LEVEL, SORT_MODE, LOG_LEVEL.LOW);
 const MAX = Number(tree1.upperIndex());
 
 function RandomNum(max: number): number {

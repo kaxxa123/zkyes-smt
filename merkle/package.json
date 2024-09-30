@@ -1,17 +1,29 @@
 {
-  "name": "merkle",
+  "name": "zkyes-smt",
   "version": "1.0.0",
-  "description": "",
-  "main": "build/src/merkle-ui.js",
+  "description": "Sparse Merkle Trees",
+  "main": "build/src/index.js",
+  "types": "build/src/index.d.ts",
   "scripts": {
     "build": "rm ./build -rf && tsc",
     "start": "node ./build/src/merkle-ui.js",
     "compute": "node ./build/src/merkle-compute.js",
     "test_single": "node ./build/src/tests/test_single_leaf.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kaxxa123/zkyes-smt.git"
+  },
+  "files": [
+    "build"
+  ],
   "keywords": [],
-  "author": "",
+  "author": "Alexander Zammit",
   "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kaxxa123/zkyes-smt/issues"
+  },
+  "homepage": "https://github.com/kaxxa123/zkyes-smt/blob/main/merkle/README.md",
   "devDependencies": {
     "@types/node": "^22.5.1",
     "ts-node": "^10.9.2",

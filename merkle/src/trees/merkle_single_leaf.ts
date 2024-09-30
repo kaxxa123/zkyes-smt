@@ -1,9 +1,5 @@
 import { ethers } from "ethers";
-import { PoM, IMerkle } from "./IMerkle"
-
-export const LOG_HI = 2;
-export const LOG_LO = 1;
-export const LOG_NO = 0;
+import { PoM, IMerkle, LOG_LEVEL } from "./IMerkle"
 
 // A Sparse Merkle Tree with optimization
 // for short-circuiting the storage of single 
@@ -30,7 +26,7 @@ export class SMTSingleLeaf implements IMerkle {
     // Parent hash should be computed over sorted child hashes
     private _sorthash: boolean;
 
-    private _logLevel: number;
+    private _logLevel: LOG_LEVEL;
 
     // Initilze Sparse Merkle Tree instance.
     //
@@ -39,7 +35,7 @@ export class SMTSingleLeaf implements IMerkle {
     //
     //      sorthash - if true, hash(left, right) will first  
     //      sort the left and right values: 0x<Smallest><Largest>
-    constructor(lvl: bigint, sorthash: boolean = false, log: number = LOG_NO) {
+    constructor(lvl: bigint, sorthash: boolean = false, log: LOG_LEVEL = LOG_LEVEL.NONE) {
 
         if ((lvl < 2) || (lvl > 256))
             throw `Tree level out of range ${lvl}!`;
@@ -123,7 +119,7 @@ export class SMTSingleLeaf implements IMerkle {
             }
         }
 
-        if (this._logLevel >= LOG_HI) {
+        if (this._logLevel >= LOG_LEVEL.HIGH) {
             console.log()
             console.log(`_singleLeafSubtree | Leaf: ${hashLevel}, Subtree/Level: (${lvl},${hashLevel})`)
             console.log()
@@ -270,7 +266,7 @@ export class SMTSingleLeaf implements IMerkle {
             bitmask = this._traverseFromRoot(bitmask, 1n);
         }
 
-        if (this._logLevel >= LOG_HI) {
+        if (this._logLevel >= LOG_LEVEL.HIGH) {
             console.log()
             console.log(" _extractSiblings | Siblings: ")
             console.log(toRead)
@@ -340,7 +336,7 @@ export class SMTSingleLeaf implements IMerkle {
         // Flip order to get the root at index zero.
         toWrite = toWrite.reverse()
 
-        if (this._logLevel >= LOG_HI) {
+        if (this._logLevel >= LOG_LEVEL.HIGH) {
             console.log()
             console.log("_computeUpdatedNodes | Nodes: ")
             console.log(toWrite)
@@ -360,7 +356,7 @@ export class SMTSingleLeaf implements IMerkle {
         if ((children.length != 2) && (children.length != 3))
             throw "Invalid tree children array. Invalid length."
 
-        if (this._logLevel >= LOG_LO) {
+        if (this._logLevel >= LOG_LEVEL.LOW) {
             let shrink = children.map(str => {
                 if (str.length <= 11) return str;
                 return ` ${str.slice(0, 4)}...${str.slice(str.length - 4)}`;

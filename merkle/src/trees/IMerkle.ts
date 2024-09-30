@@ -186,3 +186,9 @@ export class MerkleWrapper {
         return this._tree.getProof(address);
     }
 }
+
+export enum LOG_LEVEL {
+    NONE = 0,
+    LOW = 1,
+    HIGH = 2,
+}
