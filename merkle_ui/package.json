@@ -1,0 +1,25 @@
+{
+  "name": "merkle-ui",
+  "version": "1.0.0",
+  "description": "Sparse Merkle Trees Console UI",
+  "main": "build/src/merkle-ui.js",
+  "scripts": {
+    "build": "rm ./build -rf && tsc",
+    "start": "node ./build/src/merkle-ui.js",
+    "compute": "node ./build/src/merkle-compute.js",
+    "test_single": "node ./build/src/tests/test_single_leaf.js"
+  },
+  "keywords": [],
+  "author": "Alexander Zammit",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/blessed": "^0.1.25",
+    "@types/node": "^22.7.4",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.2"
+  },
+  "dependencies": {
+    "blessed": "^0.1.81",
+    "zkyes-smt": "^1.0.1"
+  }
+}

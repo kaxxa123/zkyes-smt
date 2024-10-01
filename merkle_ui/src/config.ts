@@ -1,11 +1,13 @@
 import * as fs from "fs";
 import * as util from "util";
 
-import { IMerkle } from "./trees/IMerkle"
-import { SMTNaive } from './trees/merkle_naive'
-import { SMTHashZero } from './trees/merkle_h0'
-import { SMTSingleLeaf } from './trees/merkle_single_leaf'
-import { SMTSingleLeafEx } from './trees/merkle_single_leaf_ex'
+import {
+    IMerkle,
+    SMTNaive,
+    SMTHashZero,
+    SMTSingleLeaf,
+    SMTSingleLeafEx
+} from "zkyes-smt"
 
 export const CONFIG_JSON = "./tree_config.json";
 

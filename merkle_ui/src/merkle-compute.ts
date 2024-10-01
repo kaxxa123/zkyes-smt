@@ -1,4 +1,4 @@
-import { IMerkle } from "./trees/IMerkle"
+import { IMerkle } from "zkyes-smt"
 import { CONFIG_JSON, loadConfig, initTreeByConfig } from './config'
 
 async function main() {

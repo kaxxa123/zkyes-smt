@@ -1,4 +1,4 @@
-import { IMerkle, MerkleWrapper } from "./trees/IMerkle"
+import { IMerkle, MerkleWrapper } from "zkyes-smt"
 
 const NODE_WIDTH = 10;
 const NODE_HEIGHT = 3;

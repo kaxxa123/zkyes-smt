@@ -3,9 +3,7 @@
 //
 // Randomly add/remove tree leaves and check that the roots always match.
 
-import { LOG_LEVEL } from "../trees/IMerkle"
-import { SMTHashZero } from '../trees/merkle_h0'
-import { SMTSingleLeaf } from '../trees/merkle_single_leaf'
+import { LOG_LEVEL, SMTHashZero, SMTSingleLeaf } from "zkyes-smt"
 
 const LEVEL = 5n;
 const SORT_MODE = false;
