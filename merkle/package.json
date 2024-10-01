@@ -1,6 +1,6 @@
 {
   "name": "zkyes-smt",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Sparse Merkle Trees",
   "main": "build/src/index.js",
   "types": "build/src/index.d.ts",
