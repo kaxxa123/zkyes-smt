@@ -6,7 +6,7 @@ One coding goal was the avoidance of recursion. The reason to this is that in Sm
  
 ## Getting Started
 
-All SMT implemetations expose the IMerkle public interface. Refer to the function documentation [here](https://github.com/kaxxa123/zkyes-smt/blob/main/merkle/src/trees/IMerkle.ts).
+All SMT implemetations expose the IMerkle public interface. Refer to the function documentation [here](https://github.com/kaxxa123/zkyes-smt/blob/main/merkle/src/IMerkle.ts).
 
 1. Install the node package:
     ```BASH

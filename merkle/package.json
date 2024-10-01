@@ -1,14 +1,11 @@
 {
   "name": "zkyes-smt",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Sparse Merkle Trees",
   "main": "build/src/index.js",
   "types": "build/src/index.d.ts",
   "scripts": {
-    "build": "rm ./build -rf && tsc",
-    "start": "node ./build/src/merkle-ui.js",
-    "compute": "node ./build/src/merkle-compute.js",
-    "test_single": "node ./build/src/tests/test_single_leaf.js"
+    "build": "rm ./build -rf && tsc"
   },
   "repository": {
     "type": "git",
@@ -30,8 +27,6 @@
     "typescript": "^5.5.4"
   },
   "dependencies": {
-    "@types/blessed": "^0.1.25",
-    "blessed": "^0.1.81",
     "ethers": "^6.13.2"
   }
 }

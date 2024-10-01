@@ -94,4 +94,4 @@ An array of leaves to add to the tree. Each leaf is defined by an `index` and `v
 
 ## Merkle Tree Library
 
-For details on the reusable Sparse Merkle Tree implmentations check [here](./README_NPMJS.md).
+For details on the reusable Sparse Merkle Tree implmentations check [here](../merkle/README.md).
