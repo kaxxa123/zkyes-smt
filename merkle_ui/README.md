@@ -45,7 +45,7 @@ Important Notes:
 
 `tree_config.json | "type":` `"naive"` | `"h0"` | `"short"` | `"shortex"`
 
-Select the type of Merkle tree to use. Each maps to a different Sparse Merkle tree implementation from within the [zkyes-smt library](./README_NPMJS.md).
+Select the type of Merkle tree to use. Each maps to a different Sparse Merkle tree implementation from within the [zkyes-smt library](../merkle/README.md).
 
 |tree_config.json Type       | Library Type      |
 |----------------------------|-------------------|
