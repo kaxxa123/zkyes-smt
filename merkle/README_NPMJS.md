@@ -1,7 +1,43 @@
 # Merkle Tree Library
 
-These implementations all had the goal not to use recursion. 
+This library explores different Spare Merkle tree optimizations. 
+
+One coding goal was the avoidance of recursion. The reason to this is that in Smart Contracts, recursion is discouraged because of stack limitations. Thus, we wanted a typescript implementation that could later serve as a basis for smart contract implementation.
  
+## Getting Started
+
+All SMT implemetations expose the IMerkle public interface. Refer to the function documentation [here](https://github.com/kaxxa123/zkyes-smt/blob/main/merkle/src/trees/IMerkle.ts).
+
+1. Install the node package:
+    ```BASH
+    npm install zkyes-smt
+    ```
+
+1. Import the required merkle tree implementation.
+    ```JS
+    import { SMTSingleLeafEx } from 'zkyes-smt';
+    ```
+
+1. Create a tree instance, all SMTs require the same constructor parameters:
+    ```JS
+    const smt = new SMTSingleLeafEx(
+        BigInt(160),     // Number of tree levels
+        false);          // Should sibling hashes be sorted? Use false if in doubt
+    ```
+
+1. Add leaves, retrieve root and a proof-of-membership:
+    ```JS
+    smt.addLeaf(BigInt("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"), (5n * 10n ** 18n).toString(16))
+    smt.addLeaf(BigInt("0x70997970C51812dc3A010C7d01b50e0d17dc79C8"), (6n * 10n ** 18n).toString(16))
+    smt.addLeaf(BigInt("0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"), (7n * 10n ** 18n).toString(16))
+    smt.addLeaf(BigInt("0x90F79bf6EB2c4f870365E785982E1f101E93b906"), (8n * 10n ** 18n).toString(16))
+
+    let smtRoot = "0x" + smt.ROOT()
+
+    let pom = smt.getProof(BigInt("0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"))
+    ```
+
+<BR />
 
 ## SMTNaive
 
@@ -87,12 +123,11 @@ Tree pruning ensures a single rapresentation for identical subtrees no matter th
 
 The need for leaf removal is application specific. We do not predict the need for leaf removal in zkYes and will not support tree pruning at this stage. 
 
-__WARNING: SMTSingleLeafEx does not implement tree pruning. The problem described above can be__
-__reproduced using the merkle ui.__
+__WARNING: SMTSingleLeafEx does not implement tree pruning. The problem described above can be reproduced using the Merkle UI available when building from code.__
 
-Reproduce this problem as follows:
+Reproduce this problem in Merkle UI as follows:
 
-1. Start with an unsorted 3 level tree.
+1. Start with an unsorted 3 level tree with `"type": "shortex"`.
 1. Add leaf index 5. Note how the tree root has the same hash as leaf at index 5.
 1. Add leaf index 2.
 1. Remove leaf at index 2.

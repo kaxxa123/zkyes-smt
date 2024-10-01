@@ -36,9 +36,9 @@ npm run compute
 The [tree_config.json](./tree_config.json) is useful in both configuring the initial Merkle UI settings and in quickly computing Merkle roots for a given set of leaves. 
 
 Important Notes:
-* The Merkle tree type setting is only available from `tree_config.json`. Thus one must use this config file to switch the SMT displayed by the Merkle UI.
+* The Merkle tree `type` is only configurable from `tree_config.json`. Thus one must use this config file to switch the SMT displayed by the Merkle UI.
 
-* The Merkle UI supports a maximum depth of 10. Setting `tree_config.json | "level"` to a greater value will cause the UI to reject the configuration completely and start with default settings.
+* The Merkle UI supports a maximum tree depth of 10. Setting `tree_config.json | "level"` to a greater value will cause the UI to reject the configuration completely and start with default settings.
 
 <BR />
 
@@ -62,7 +62,7 @@ Select the type of Merkle tree to use. Each maps to a different Sparse Merkle tr
 
 `tree_config.json | "level":` `2` to `256`
 
-Specify the maximum tree depth. When computing Merkle roots with `npm run compute` levels up to `256` may be used. When running the Merkle UI the maximum allowed level value is `10`.
+Specify the maximum tree depth. When computing Merkle roots with `npm run compute` levels up to `256` may be used. When running the Merkle UI the maximum allowed `level` is `10`.
 
 <BR />
 
@@ -70,7 +70,7 @@ Specify the maximum tree depth. When computing Merkle roots with `npm run comput
 
 `tree_config.json | "sort_hash":` `true` | `false`
 
-Specify whether the tree should sort sibling hashes when computing parent node hashes. In general it is recommanded to keep this setting to `false`, as it causes a loss of information in terms of leaf position. However the OpenZeppelin Merkle tree impelmentation requires this sorting operation.
+Specify whether the tree should sort sibling hashes when computing parent node hashes. In general it is recommanded to keep this setting to `false`, as it causes loss of information in terms of leaf position. However the OpenZeppelin proof-of-membership verifier requires sorting.
 
 <BR />
 
@@ -79,13 +79,15 @@ Specify whether the tree should sort sibling hashes when computing parent node h
 
 `tree_config.json | "leaves": [leaf]` 
 
-`leaf | "index":` `0` to `max_leaf_index`
+An array of leaves to add to the tree. Each leaf is defined by an `index` and `value` pair:
 
-The leaf index being set where `max_leaf_index = 2^level - 1`.
+* `leaf | "index":` `0` to `max_leaf_index`
 
-`leaf | "value":` `hex_string`
+    The leaf index being set, where `max_leaf_index = 2^level - 1`.
 
-The leaf value to be set at the specified leaf index. This value must be a hex string without a leading `0x` prefix. Values will be normalized to 32-byte boundaries, padding them with leading zeros if necessary, and hashed before inserting into the tree. 
+* `leaf | "value":` `hex_string`
+
+    The leaf value to be set at the specified index. This value must be a hex string without a leading `0x` prefix. Values will be normalized to 32-byte boundaries, and hashed before insertion into the tree. 
 
 
 <BR />
