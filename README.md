@@ -16,6 +16,8 @@ The repository is composed of various sub-projects analyzing previous work as we
 
 * [iden3_tree](./iden3_tree/README.md) - Review of the iden3 Sparse Merkle Tree implementation.
 
-* [merkle](./merkle/README.md) - Our own Node.js/typescript implementation of various Sparse Merkle Tree optimizations. Project also includes a console-based graphical interface that helps visualizing SMT implementations.
+* [merkle](./merkle/README.md) - Our own Node.js/typescript implementation of various Sparse Merkle Tree optimizations. 
+
+* [merkle-ui](./merkle_ui/README.md) - A console-based graphical interface that helps visualizing SMT implementation and other testing tools.
 
 

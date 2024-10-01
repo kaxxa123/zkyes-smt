@@ -1,12 +1,11 @@
-# Sparse Merkle Trees
+# Merkle UI
 
-1. Implementation of a Sparse Merkle Tree console UI, helping to visualize the changes taking place on adding leaves and proof construction.
-
-2. Implemenation of various Sparse Merkle Trees, featuring different optimizations. 
-
-## Merkle Tree UI
+A Sparse Merkle Tree console UI, helping to visualize the changes taking place on adding leaves and proof construction.
 
 ![Merkle UI](../merkle_ui.png)
+
+
+## Getting Started
 
 To build the Merkle Tree UI follow these steps:
 
