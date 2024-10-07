@@ -1,0 +1,19 @@
+{
+  "name": "merkle_test",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "rm ./build -rf && tsc",
+    "test": "node ./build/src/test_single_leafex.js",
+    "test_single": "node ./build/src/test_single_leaf.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^22.7.4",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.2"
+  }
+}
