@@ -126,7 +126,7 @@ export interface IMerkle {
 // A thin wrapper that helps classes to merge the
 // public interface of a tree instance to their 
 // own interface by just inheriting from MerkleWrapper.
-export class MerkleWrapper {
+export class MerkleWrapper implements IMerkle {
     private _tree: IMerkle;
 
     constructor(tree: IMerkle) {
@@ -175,6 +175,10 @@ export class MerkleWrapper {
 
     hash(left: string, right: string): string {
         return this._tree.hash(left, right);
+    }
+
+    hashLeaf(data: string[]): string {
+        return this._tree.hashLeaf(data);
     }
 
     isZeroTree(hash: string, level: number): boolean {
