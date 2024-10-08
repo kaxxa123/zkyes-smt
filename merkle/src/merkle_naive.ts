@@ -287,6 +287,10 @@ export class SMTNaive implements IMerkle {
         return ethers.keccak256("0x" + this.normalizePreimage(left) + this.normalizePreimage(right)).slice(2);
     }
 
+    hashLeaf(data: string[]): string {
+        throw "Leaf data encoding not supported!"
+    }
+
     isZeroTree(hash: string, level: number): boolean {
         return (this._hashZeroTree[level] == hash);
     }

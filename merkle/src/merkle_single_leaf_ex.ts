@@ -268,7 +268,7 @@ export class SMTSingleLeafEx implements IMerkle {
         //Hash leaf as Hash(address | value | 1)
         let hashLevel = (value === this.ZERO_LEAF_VALUE()) ?
             this.HASH_ZERO() :
-            this.hashLeaf(address.toString(16), value);
+            this.hashLeaf([address.toString(16), value, "1"]);
 
         // Push leaf value and hash. Leafs will always be 
         // terminated with the sequence:
@@ -453,13 +453,16 @@ export class SMTSingleLeafEx implements IMerkle {
             : ethers.keccak256("0x" + preimage).slice(2);
     }
 
-    hashLeaf(address: string, value: string): string {
-        let preimage = this.normalizePreimage(address) +
-            this.normalizePreimage(value) +
-            this.normalizePreimage("1");
+    hashLeaf(data: string[]): string {
+        if (data.length !== 3)
+            throw "Unexpected leaf data length";
+
+        let preimage = this.normalizePreimage(data[0]) +
+            this.normalizePreimage(data[1]) +
+            this.normalizePreimage(data[2]);
 
         // Will always generate a 256-bit hash with leading zeros (if needed)
-        return (value == this.ZERO_LEAF_VALUE())
+        return (data[1] == this.ZERO_LEAF_VALUE())
             ? this.HASH_ZERO()
             : ethers.keccak256("0x" + preimage).slice(2);
     }

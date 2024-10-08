@@ -495,6 +495,12 @@ export class SMTSingleLeaf implements IMerkle {
             : ethers.keccak256("0x" + preimage).slice(2);
     }
 
+    hashLeaf(data: string[]): string {
+        if (data.length !== 3)
+            throw "Unexpected leaf data length";
+        return data[1];
+    }
+
     isZeroTree(hash: string, level: number): boolean {
         return (this.HASH_ZERO() == hash);
     }

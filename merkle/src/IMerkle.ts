@@ -74,6 +74,17 @@ export interface IMerkle {
     //      hash(left | right)
     hash(left: string, right: string): string;
 
+    // Get the leaf hash given the leaf data stored within 
+    // the tree.
+    //
+    // Inputs
+    //      data - string array representing leaf data.
+    //      This data is SMT implementation specific.
+    //
+    // Returns
+    //       Leaf hash.
+    hashLeaf(data: string[]): string;
+
     // Check if the input hash is an "all zero" subtree.
     //
     // Inputs

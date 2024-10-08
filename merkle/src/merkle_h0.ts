@@ -260,6 +260,10 @@ export class SMTHashZero implements IMerkle {
             : ethers.keccak256("0x" + preimage).slice(2);
     }
 
+    hashLeaf(data: string[]): string {
+        throw "Leaf data encoding not supported!"
+    }
+
     isZeroTree(hash: string, level: number): boolean {
         return (this.HASH_ZERO() == hash);
     }
