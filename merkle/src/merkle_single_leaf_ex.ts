@@ -192,13 +192,12 @@ export class SMTSingleLeafEx implements IMerkle {
                     //          New      Old
 
                     // Does the requested leaf match the non-zero leaf?
+                    // If YES we are done, node is already set to the leaf hash
+                    // If NO continue traversing...
                     let leaf_address = BigInt("0x" + subtree[0]);
-                    if (leaf_address == address) {
-                        node = subtree[1];
-                    }
-                    else {
+                    if (leaf_address != address) {
                         // As long as the paths for the two leaves overlap,
-                        // the sibling hash will be zero.
+                        // the sibling hashes will be zero.
                         for (; pos < this.LEVELS_TOTAL(); ++pos) {
                             if ((address & bitmask) != (leaf_address & bitmask))
                                 break;
@@ -207,31 +206,14 @@ export class SMTSingleLeafEx implements IMerkle {
                             bitmask = this._traverseFromRoot(bitmask, 1n);
                         }
 
-                        // We now have two sibling subtrees, both with a single
-                        // non-zero leaf. Get the hash of the sibiling subtree.
-                        // Here we need to handle a limit case where the two 
-                        // leaves are siblings.
-                        //
-                        //             [ a ]                               [ z ]             
-                        //               |                                   |               
-                        //     [ b ]-----|------[ 0 ]       =>     [ y ]-----|------[ 0 ]    
-                        //       |                |                  |                |      
-                        // [ 0 ]-|-[ c ]    [ 0 ]-|-[ 0 ]      [ x ]-|-[ c ]    [ 0 ]-|-[ 0 ]
-
                         // Should never happen. That would indicate both
-                        // addresses where equal.
+                        // addresses were equal.
                         if (BigInt(pos) == this.LEVELS_TOTAL())
                             throw "Unexpected traversal level";
 
-                        // The two leaves are siblings.
-                        else if (BigInt(pos + 1) == this.LEVELS_TOTAL()) {
-                            toRead.push(subtree[1]);
-                        }
-
                         else {
-                            auxTree = [subtree[1], ...subtree];
-
-                            toRead.push(subtree[1]);
+                            toRead.push(node);
+                            auxTree = [node, ...subtree];
                             node = this.HASH_ZERO();
                         }
                     }
@@ -284,23 +266,24 @@ export class SMTSingleLeafEx implements IMerkle {
             throw "Invalid leaf address!";
 
         //Hash leaf as Hash(address | value | 1)
-        let hashLeaf = (value === this.ZERO_LEAF_VALUE()) ?
+        let hashLevel = (value === this.ZERO_LEAF_VALUE()) ?
             this.HASH_ZERO() :
-            this.hash(
-                this.normalizePreimage(address.toString(16)) +
-                this.normalizePreimage(value) +
-                this.normalizePreimage("1"));
-        toWrite.push(hashLeaf)
+            this.hashLeaf(address.toString(16), value);
+
+        // Push leaf value and hash. Leafs will always be 
+        // terminated with the sequence:
+        //
+        // [ Hash(index, value, 1) ] <--- Leaf hash
+        //             |
+        //    [ index, value, 1 ]  <----- Leaf preimage
+        toWrite.push(value)
+        toWrite.push(hashLevel)
 
         // Compute hash from the leaf up to the subtree root where this
         // will be the only non-zero leaf.
-        let hashLevel = hashLeaf;
         let lvlDiff = this.LEVELS_TOTAL() - BigInt(siblings.length);
-
-        if (lvlDiff > 0) {
-            toWrite.push(hashLevel)
+        if (lvlDiff > 0)
             bitmask = this._traverseFromLeaf(bitmask, lvlDiff);
-        }
 
         // Traverse the remaining levels upwards until we reach the root 
         for (let pos = siblings.length; pos > 0; --pos) {
@@ -328,10 +311,12 @@ export class SMTSingleLeafEx implements IMerkle {
         return toWrite
     }
 
+    // Add an entry to the tree structure given a parent hash and
+    // ...either a pair of child hashes OR 
+    // ...a triplet representing a leaf.
     private _tree_set(log: string, parent: string, children: string[]) {
-        // Filter out entries whose parent is zero.
-        // This happens because of the way we handle removal of leaves
-        // which involves setting the leaf to a zero hash.
+
+        // Don't save an entry whose parent is zero.
         if (parent === this.HASH_ZERO())
             return;
 
@@ -370,22 +355,14 @@ export class SMTSingleLeafEx implements IMerkle {
         if (BigInt(siblings.length) > this.LEVELS_TOTAL())
             throw `Unexpected siblings array length: ${siblings.length}!`;
 
-        // When an auxiliary node IS included, the sibling list will always have missing 
-        // entries. We expect the nodes array to be terminated with two extra hashes: 
-        // [..., single_leaf_subtree_hash, leaf_hash] = [..., leaf_hash, leaf_hash]
-        if ((aux.length !== 0) && (nodes.length !== siblings.length + 2))
-            throw `Unexpected nodes array length, with auxiliary node! Nodes: ${nodes.length}, Siblings: ${siblings.length}`;
+        // The sibling list will always have two entries less than the node list.
+        // The root and leaf_value have no siblings. 
+        // nodes:    [root, lvl1 child,   ..., leaf_hash,    leaf_value]
+        // siblings:       [lvl1 sibling, ..., leaf_sibling]
+        if (nodes.length !== siblings.length + 2)
+            throw `Unexpected nodes array length. Nodes: ${nodes.length}, Siblings: ${siblings.length}`;
 
-        // When an auxiliary node IS NOT included, we may either have a full set of
-        // siblings or we may have a difference of 2 entries as we still short-circuit
-        // the leaf being added without getting to the bottom level.
-        if (aux.length === 0) {
-            if ((nodes.length !== siblings.length + 1) &&
-                (nodes.length !== siblings.length + 2))
-                throw `Unexpected nodes array length, WITHOUT auxiliary node! Nodes: ${nodes.length}, Siblings: ${siblings.length}`;
-        }
-
-        // Add all parent nodes.
+        // Add parent nodes.
         for (let pos = 0; pos < siblings.length; ++pos) {
             // 1 =>    Read Left, Change Right
             // 0 =>  Change Left,   Read Right
@@ -397,14 +374,13 @@ export class SMTSingleLeafEx implements IMerkle {
             bitmask = this._traverseFromRoot(bitmask, 1n);
         }
 
-        // Special single non-zero leaf subtree encoding
-        if (nodes.length === siblings.length + 2)
-            this._tree_set(
-                "SHORT ",
-                nodes[nodes.length - 2],
-                [this.normalizePreimage(address.toString(16)),
-                nodes[nodes.length - 1],
-                this.normalizePreimage("1")]);
+        // Add leaf_hash -> leaf_value
+        this._tree_set(
+            "SHORT ",
+            nodes[nodes.length - 2],
+            [this.normalizePreimage(address.toString(16)),
+            this.normalizePreimage(nodes[nodes.length - 1]),
+            this.normalizePreimage("1")]);
 
         // Add node entry for auxiliary subtree
         if (aux.length > 0)
@@ -464,7 +440,7 @@ export class SMTSingleLeafEx implements IMerkle {
         return input.padStart(64 + input.length - (input.length % 64), '0')
     }
 
-    hash(left: string, right: string = ""): string {
+    hash(left: string, right: string): string {
         if (this._sorthash) {
             [left, right] = this._sortHashes(left, right);
         }
@@ -473,6 +449,17 @@ export class SMTSingleLeafEx implements IMerkle {
 
         // Will always generate a 256-bit hash with leading zeros (if needed)
         return (preimage == this.ZERO_LEAF_VALUE())
+            ? this.HASH_ZERO()
+            : ethers.keccak256("0x" + preimage).slice(2);
+    }
+
+    hashLeaf(address: string, value: string): string {
+        let preimage = this.normalizePreimage(address) +
+            this.normalizePreimage(value) +
+            this.normalizePreimage("1");
+
+        // Will always generate a 256-bit hash with leading zeros (if needed)
+        return (value == this.ZERO_LEAF_VALUE())
             ? this.HASH_ZERO()
             : ethers.keccak256("0x" + preimage).slice(2);
     }
@@ -494,7 +481,7 @@ export class SMTSingleLeafEx implements IMerkle {
         let newNodes = this._computeUpdatedNodes(address, value, siblings);
         this._addLeafNodes(address, newNodes, siblings, aux);
 
-        return newNodes[newNodes.length - 1];
+        return newNodes[newNodes.length - 2];
     }
 
     getProof(address: bigint): PoM {
