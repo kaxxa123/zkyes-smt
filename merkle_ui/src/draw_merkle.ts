@@ -147,7 +147,7 @@ export class TreeDisplay extends MerkleWrapper {
             let childSpace = totalwidth / this._getNodesByLevel(level + 1);
             let start1 = Math.round((childSpace * horizIdx * 2) + childSpace);
             let start2 = Math.round((childSpace * horizIdx * 2) + childSpace / 2);
-            let line = this._CORNER_LEFT() + ''.padEnd(Math.round(childSpace - 2), '-') + this._CORNER_RIGHT();
+            let line = this._CORNER_LEFT() + '-'.repeat(Math.round(childSpace - 2)) + this._CORNER_RIGHT();
 
             buffer.write("|", (vertPos + 3) * totalwidth + start1, 'utf8');
             buffer.write(line, (vertPos + 4) * totalwidth + start2, 'utf8');
@@ -196,7 +196,7 @@ export class TreeDisplay extends MerkleWrapper {
                 this._drawTreeLevel(nodeHash, shortAddr, level + 1, horizIdx * 2, totalwidth, buffer)
                 this._drawTreeLevel(nodeHash, shortAddr, level + 1, horizIdx * 2 + 1, totalwidth, buffer)
             }
-            else if (shortAddr != BigInt(horizIdx))
+            else if (shortAddr != BigInt(this._adjustIndex(horizIdx)))
                 this._drawNode("   x  ", level, horizIdx, totalwidth, buffer);
             else
                 this._drawNode(nodeHash, level, horizIdx, totalwidth, buffer);
@@ -245,7 +245,7 @@ export class TreeDisplay extends MerkleWrapper {
         const HEIGHT = NODE_HEIGHT * Number(this.LEVELS_TOTAL() + 1n) +
             NODE_VSPACING * Number(this.LEVELS_TOTAL()) + 1;
 
-        let line = ''.padEnd(WIDTH - NEWLINE_LEN, ' ') + NEWLINE;
+        let line = ' '.repeat(WIDTH - NEWLINE_LEN) + NEWLINE;
 
         const bufferSize = Buffer.byteLength(line) * HEIGHT;
         const buffer = Buffer.alloc(bufferSize);

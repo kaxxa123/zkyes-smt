@@ -6,8 +6,7 @@
   "scripts": {
     "build": "rm ./build -rf && tsc",
     "start": "node ./build/src/merkle-ui.js",
-    "compute": "node ./build/src/merkle-compute.js",
-    "test_single": "node ./build/src/tests/test_single_leaf.js"
+    "compute": "node ./build/src/merkle-compute.js"
   },
   "keywords": [],
   "author": "Alexander Zammit",
