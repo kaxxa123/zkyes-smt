@@ -189,6 +189,10 @@ export class TreeDisplay extends MerkleWrapper {
         totalwidth: number,
         buffer: Buffer) {
 
+        // SMTSingleLeafEx has an extra level which we won't display
+        if (BigInt(level) > this.LEVELS_TOTAL())
+            return;
+
         if (shortAddr >= 0n) {
             if (BigInt(level) < this.LEVELS_TOTAL()) {
                 this._drawNode("   x  ", level, horizIdx, totalwidth, buffer);
@@ -219,8 +223,8 @@ export class TreeDisplay extends MerkleWrapper {
             }
             if (subtree?.length === 3) {
                 let addr = BigInt("0x" + subtree[0])
-                this._drawTreeLevel(subtree[1], addr, level + 1, horizIdx * 2, totalwidth, buffer)
-                this._drawTreeLevel(subtree[1], addr, level + 1, horizIdx * 2 + 1, totalwidth, buffer)
+                this._drawTreeLevel(this.hashLeaf(subtree), addr, level + 1, horizIdx * 2, totalwidth, buffer)
+                this._drawTreeLevel(this.hashLeaf(subtree), addr, level + 1, horizIdx * 2 + 1, totalwidth, buffer)
             }
         }
     }
