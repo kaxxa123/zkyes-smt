@@ -531,6 +531,6 @@ export class SMTSingleLeaf implements IMerkle {
         for (let pos = siblings.length; pos < this.LEVELS_TOTAL(); ++pos)
             siblings.push(this.HASH_ZERO());
 
-        return { root: this.ROOT(), leaf, siblings };
+        return { compress: undefined, root: this.ROOT(), leaf, siblings };
     }
 }

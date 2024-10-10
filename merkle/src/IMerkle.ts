@@ -1,4 +1,10 @@
 export type PoM = {
+    // Compression Mask
+    // When undefined the siblings array is not compressed.
+    // When set, the mask identifies which siblings where 
+    // removed by the compression process.
+    compress: bigint | undefined;
+
     // Tree root hash
     root: string,
 
@@ -122,85 +128,6 @@ export interface IMerkle {
     //      PoM stuct containing all the proof elements.
     getProof(address: bigint): PoM;
 };
-
-// A thin wrapper that helps classes to merge the
-// public interface of a tree instance to their 
-// own interface by just inheriting from MerkleWrapper.
-export class MerkleWrapper implements IMerkle {
-    private _tree: IMerkle;
-
-    constructor(tree: IMerkle) {
-        this._tree = tree;
-    }
-
-    NAME(): string {
-        return this._tree.NAME();
-    }
-
-    LEVELS_TOTAL(): bigint {
-        return this._tree.LEVELS_TOTAL();
-    }
-
-    SORTED_HASH(): boolean {
-        return this._tree.SORTED_HASH();
-    }
-
-    INVERTED_INDEX(): boolean {
-        return this._tree.INVERTED_INDEX();
-    }
-
-    ZERO_LEAF_VALUE(): string {
-        return this._tree.ZERO_LEAF_VALUE();
-    }
-
-    HASH_ZERO(): string {
-        return this._tree.HASH_ZERO();
-    }
-
-    HASH_ZERO_TREE(idx: number): string {
-        return this._tree.HASH_ZERO_TREE(idx);
-    }
-
-    ROOT(): string {
-        return this._tree.ROOT();
-    }
-
-    TREE(parent: string): string[] | undefined {
-        return this._tree.TREE(parent);
-    }
-
-    normalizePreimage(input: string): string {
-        return this._tree.normalizePreimage(input);
-    }
-
-    hash(left: string, right: string): string {
-        return this._tree.hash(left, right);
-    }
-
-    hashLeaf(data: string[]): string {
-        return this._tree.hashLeaf(data);
-    }
-
-    isZeroTree(hash: string, level: number): boolean {
-        return this._tree.isZeroTree(hash, level);
-    }
-
-    lowerIndex(): bigint {
-        return this._tree.lowerIndex();
-    }
-
-    upperIndex(): bigint {
-        return this._tree.upperIndex();
-    }
-
-    addLeaf(address: bigint, value: string): string {
-        return this._tree.addLeaf(address, value);
-    }
-
-    getProof(address: bigint): PoM {
-        return this._tree.getProof(address);
-    }
-}
 
 export enum LOG_LEVEL {
     NONE = 0,

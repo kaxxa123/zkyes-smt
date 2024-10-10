@@ -1,4 +1,5 @@
 export * from './IMerkle';
+export * from './helpers';
 export * from './merkle_naive';
 export * from './merkle_h0';
 export * from './merkle_single_leaf';

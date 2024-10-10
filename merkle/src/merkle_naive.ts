@@ -313,6 +313,6 @@ export class SMTNaive implements IMerkle {
 
     getProof(address: bigint): PoM {
         let [siblings, leaf] = this._extractSiblings(address);
-        return { root: this.ROOT(), leaf, siblings };
+        return { compress: undefined, root: this.ROOT(), leaf, siblings };
     }
 }
