@@ -1,5 +1,6 @@
 import blessed from 'blessed';
 import { TreeDisplay, TreeBox } from './draw_merkle'
+import { compressPoM } from "zkyes-smt"
 import {
     CONFIG_JSON,
     TREE_TYPE_DEFAULT,
@@ -485,11 +486,13 @@ async function main() {
         if (leaf < 0) return;
 
         let proof = g_tree.getProof(BigInt(leaf));
+        proof = compressPoM(g_tree, proof);
 
         treeInfo.setContent(
-            `Root: ${proof.root}\n` +
-            `Leaf: ${proof.leaf}\n` +
-            `Address: ${leaf} (${leaf.toString(2).padStart(Number(g_tree.LEVELS_TOTAL()), '0')})\n` +
+            `       Root: ${proof.root}\n` +
+            `       Leaf: ${proof.leaf}\n` +
+            `    Address: ${leaf} (${leaf.toString(2).padStart(Number(g_tree.LEVELS_TOTAL()), '0')})\n` +
+            `Compression: ${proof.compress?.toString(2).padStart(Number(g_tree.LEVELS_TOTAL()), '0')}\n` +
             'Siblings [(root+1) to leaf]: \n   ' +
             proof.siblings.toString().replace(/,/g, '\n   '));
         screen.render();
