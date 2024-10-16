@@ -1,5 +1,4 @@
-import { ethers } from "ethers";
-import { PoM, IMerkle } from "./IMerkle"
+import { PoM, IMerkle, HashFn } from "./IMerkle"
 
 // A Sparse Merkle Tree with optimization
 // Hash(zero | Zero) = Zero
@@ -16,18 +15,24 @@ export class SMTHashZero implements IMerkle {
     // Parent hash should be computed over sorted child hashes
     private _sorthash: boolean;
 
+    // Function for computing hashes
+    private _hash_func: HashFn;
+
     // Initilze Sparse Merkle Tree instance.
     //
     // Inputs 
+    //      hashfn - function to compute hashes
+    //
     //      lvl - number of node levels under the root node.
     //
     //      sorthash - if true, hash(left, right) will first  
     //      sort the left and right values smallest first (left).
-    constructor(lvl: bigint, sorthash: boolean = false) {
+    constructor(hashfn: HashFn, lvl: bigint, sorthash: boolean) {
 
         if ((lvl < 2) || (lvl > 256))
             throw `Tree level out of range ${lvl}!`;
 
+        this._hash_func = hashfn;
         this._levels = lvl;
         this._sorthash = sorthash;
         this._tree = new Map();
@@ -257,7 +262,7 @@ export class SMTHashZero implements IMerkle {
         // Will always generate a 256-bit hash with leading zeros (if needed)
         return (preimage == this.ZERO_LEAF_VALUE())
             ? this.HASH_ZERO()
-            : ethers.keccak256("0x" + preimage).slice(2);
+            : this._hash_func(preimage);
     }
 
     hashLeaf(data: string[]): string {

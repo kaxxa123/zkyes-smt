@@ -3,13 +3,16 @@
 //
 // Randomly add/remove tree leaves and check that the roots always match.
 
+import { ethers } from "ethers";
 import { LOG_LEVEL, SMTHashZero, SMTSingleLeaf } from "zkyes-smt"
 
 const LEVEL = 5n;
 const SORT_MODE = false;
 
-const tree0 = new SMTHashZero(LEVEL, SORT_MODE);
-const tree1 = new SMTSingleLeaf(LEVEL, SORT_MODE, LOG_LEVEL.LOW);
+const HashKeccak256 = (preimage: string) => ethers.keccak256("0x" + preimage).slice(2);
+
+const tree0 = new SMTHashZero(HashKeccak256, LEVEL, SORT_MODE);
+const tree1 = new SMTSingleLeaf(HashKeccak256, LEVEL, SORT_MODE, LOG_LEVEL.LOW);
 const MAX = Number(tree1.upperIndex());
 
 function RandomNum(max: number): number {

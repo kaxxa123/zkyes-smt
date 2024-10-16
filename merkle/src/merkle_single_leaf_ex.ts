@@ -1,5 +1,4 @@
-import { ethers } from "ethers";
-import { PoM, IMerkle, LOG_LEVEL } from "./IMerkle"
+import { PoM, IMerkle, HashFn, LOG_LEVEL } from "./IMerkle"
 
 // A Sparse Merkle Tree with optimization for short-circuiting 
 // the storage of single non-zero leaf subtrees. However the 
@@ -32,6 +31,9 @@ export class SMTSingleLeafEx implements IMerkle {
     // Parent hash should be computed over sorted child hashes
     private _sorthash: boolean;
 
+    // Function for computing hashes
+    private _hash_func: HashFn;
+
     // false -> Root-to-Leaf traversal => Read address bits MSB-to-LSB
     // true ->  Root-to-Leaf traversal => Read address bits LSB-to-MSB
     private _reverseTraversal: boolean;
@@ -45,11 +47,12 @@ export class SMTSingleLeafEx implements IMerkle {
     //
     //      sorthash - if true, hash(left, right) will first  
     //      sort the left and right values: 0x<Smallest><Largest>
-    constructor(lvl: bigint, sorthash: boolean = false, log: LOG_LEVEL = LOG_LEVEL.NONE) {
+    constructor(hashfn: HashFn, lvl: bigint, sorthash: boolean, log: LOG_LEVEL = LOG_LEVEL.NONE) {
 
         if ((lvl < 2) || (lvl > 256))
             throw `Tree level out of range ${lvl}!`;
 
+        this._hash_func = hashfn;
         this._logLevel = log;
         this._levels = lvl;
         this._sorthash = sorthash;
@@ -450,7 +453,7 @@ export class SMTSingleLeafEx implements IMerkle {
         // Will always generate a 256-bit hash with leading zeros (if needed)
         return (preimage == this.ZERO_LEAF_VALUE())
             ? this.HASH_ZERO()
-            : ethers.keccak256("0x" + preimage).slice(2);
+            : this._hash_func(preimage);
     }
 
     hashLeaf(data: string[]): string {
@@ -464,7 +467,7 @@ export class SMTSingleLeafEx implements IMerkle {
         // Will always generate a 256-bit hash with leading zeros (if needed)
         return (data[1] == this.ZERO_LEAF_VALUE())
             ? this.HASH_ZERO()
-            : ethers.keccak256("0x" + preimage).slice(2);
+            : this._hash_func(preimage);
     }
 
     isZeroTree(hash: string, level: number): boolean {

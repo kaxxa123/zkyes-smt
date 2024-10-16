@@ -1,3 +1,5 @@
+export type HashFn = (preimage: string) => string;
+
 export type PoM = {
     // Compression Mask
     // When undefined the siblings array is not compressed.
@@ -73,8 +75,8 @@ export interface IMerkle {
     // Hash left and right (optional) sibling values.
     //
     // Inputs 
-    //      left - left tree sibling
-    //      right - right tree sibling
+    //      left - left tree sibling (hex string without leading 0x)
+    //      right - right tree sibling (hex string without leading 0x)
     //
     // Returns
     //      hash(left | right)

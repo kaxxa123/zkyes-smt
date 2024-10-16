@@ -1,3 +1,4 @@
+import { ethers } from "ethers";
 import { SMTNaive, SMTHashZero, SMTSingleLeaf, SMTSingleLeafEx } from "zkyes-smt"
 import { compressPoM, decompressPoM, PoM, IMerkle } from "zkyes-smt"
 
@@ -79,17 +80,21 @@ function fuzzTest(tree: IMerkle, repetitions: number | undefined = undefined) {
     }
 }
 
+function HashKeccak256(preimage: string): string {
+    return ethers.keccak256("0x" + preimage).slice(2)
+}
+
 function main(short: boolean = false) {
-    fuzzTest(new SMTNaive(LEVEL, SORT_MODE), short ? 10 : undefined);
+    fuzzTest(new SMTNaive(HashKeccak256, LEVEL, SORT_MODE), short ? 10 : undefined);
     console.log("Completed SMTNaive test")
 
-    fuzzTest(new SMTHashZero(LEVEL, SORT_MODE), short ? 10 : undefined);
+    fuzzTest(new SMTHashZero(HashKeccak256, LEVEL, SORT_MODE), short ? 10 : undefined);
     console.log("Completed SMTHashZero test")
 
-    fuzzTest(new SMTSingleLeaf(LEVEL, SORT_MODE), short ? 10 : undefined);
+    fuzzTest(new SMTSingleLeaf(HashKeccak256, LEVEL, SORT_MODE), short ? 10 : undefined);
     console.log("Completed SMTSingleLeaf test")
 
-    fuzzTest(new SMTSingleLeafEx(LEVEL, SORT_MODE), short ? 10 : undefined);
+    fuzzTest(new SMTSingleLeafEx(HashKeccak256, LEVEL, SORT_MODE), short ? 10 : undefined);
     console.log("Completed SMTSingleLeafEx test")
 }
 

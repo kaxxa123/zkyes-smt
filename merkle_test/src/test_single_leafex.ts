@@ -1,7 +1,9 @@
-import { LOG_LEVEL, SMTHashZero, SMTSingleLeafEx } from "zkyes-smt"
+import { ethers } from "ethers";
+import { LOG_LEVEL, SMTSingleLeafEx } from "zkyes-smt"
 
 const LEVEL = 4n;
-const tree = new SMTSingleLeafEx(LEVEL, false, LOG_LEVEL.HIGH);
+const HashKeccak256 = (preimage: string) => ethers.keccak256("0x" + preimage).slice(2);
+const tree = new SMTSingleLeafEx(HashKeccak256, LEVEL, false, LOG_LEVEL.HIGH);
 
 function reproduce() {
 
