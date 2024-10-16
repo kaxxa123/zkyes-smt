@@ -18,11 +18,18 @@ All SMT implemetations expose the IMerkle public interface. Refer to the functio
     import { SMTSingleLeafEx } from 'zkyes-smt';
     ```
 
+1. Import some hashing function library.
+    ```JS
+    import { ethers } from "ethers";
+    ```
+
 1. Create a tree instance, all SMTs require the same constructor parameters:
     ```JS
+    const HashKeccak256 = (preimage: string) => ethers.keccak256("0x" + preimage).slice(2);    
     const smt = new SMTSingleLeafEx(
-        BigInt(160),     // Number of tree levels
-        false);          // Should sibling hashes be sorted? Use false if in doubt
+        HashKeccak256,    // Hash function
+        BigInt(160),      // Number of tree levels
+        false);           // Should sibling hashes be sorted? Use false if in doubt
     ```
 
 1. Add leaves, retrieve root and a proof-of-membership:

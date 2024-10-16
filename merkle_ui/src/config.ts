@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import * as util from "util";
 
+import { ethers } from "ethers";
 import {
     IMerkle,
     SMTNaive,
@@ -87,16 +88,19 @@ export async function loadConfigOR(path: string, defConfig: TreeConfig): Promise
 }
 
 export function initTreeType(type: string, level: number, sort: boolean): IMerkle {
+
+    const HashKeccak256 = (preimage: string) => ethers.keccak256("0x" + preimage).slice(2);
+
     if (type === TREE_TYPE_NAIVE)
-        return new SMTNaive(BigInt(level), sort);
+        return new SMTNaive(HashKeccak256, BigInt(level), sort);
 
     else if (type === TREE_TYPE_SHORT)
-        return new SMTSingleLeaf(BigInt(level), sort);
+        return new SMTSingleLeaf(HashKeccak256, BigInt(level), sort);
 
     else if (type === TREE_TYPE_SHORT_EX)
-        return new SMTSingleLeafEx(BigInt(level), sort);
+        return new SMTSingleLeafEx(HashKeccak256, BigInt(level), sort);
 
-    return new SMTHashZero(BigInt(level), sort);
+    return new SMTHashZero(HashKeccak256, BigInt(level), sort);
 }
 
 export function initTreeByConfig(config: TreeConfig): IMerkle {
