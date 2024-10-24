@@ -35,7 +35,7 @@ npm run compute
 The [tree_config.json](./tree_config.json) is useful in both configuring the initial Merkle UI settings and in quickly computing Merkle roots for a given set of leaves. 
 
 Important Notes:
-* The Merkle tree `type` is only configurable from `tree_config.json`. Thus one must use this config file to switch the SMT displayed by the Merkle UI.
+* The Merkle tree `type` and `hash` function are only configurable from `tree_config.json`. Thus one must use this config file to switch the SMT displayed by the Merkle UI.
 
 * The Merkle UI supports a maximum tree depth of 10. Setting `tree_config.json | "level"` to a greater value will cause the UI to reject the configuration completely and start with default settings.
 
@@ -54,6 +54,14 @@ Select the type of Merkle tree to use. Each maps to a different Sparse Merkle tr
 |`short`                     | `SMTSingleLeaf`   |
 |`shortex`                   | `SMTSingleLeafEx` |
 
+
+<BR />
+
+### tree_config.json | type
+
+`tree_config.json | "hash":` `"keccak256"` | `"poseidon"`
+
+Select the hashing function to use between Keccak256 and Poseidon (over curve bn254).
 
 <BR />
 

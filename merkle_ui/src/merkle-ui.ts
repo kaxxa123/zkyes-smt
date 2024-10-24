@@ -1,10 +1,14 @@
 import blessed from 'blessed';
+import { buildPoseidon, Poseidon } from "circomlibjs";
 import { TreeDisplay, TreeBox } from './draw_merkle'
 import { compressPoM } from "zkyes-smt"
 import {
     CONFIG_JSON,
     TREE_TYPE_DEFAULT,
+    HASH_DEFAULT,
     TreeConfig,
+    normalizedTreeType,
+    normalizedHashType,
     loadConfigOR,
     initTreeType
 } from './config'
@@ -15,6 +19,7 @@ const TEXTBOX_HEIGHT = 3;
 const BUTTON_HEIGHT = 2;
 const DEFAULT_CONFIG: TreeConfig = {
     type: TREE_TYPE_DEFAULT,
+    hash: HASH_DEFAULT,
     level: 3,
     sort_hash: false,
     leaves: []
@@ -23,26 +28,26 @@ const DEFAULT_CONFIG: TreeConfig = {
 let g_horiz_offset: number;
 let g_control_top: number;
 let g_tree_type: string;
+let g_hash_type: string;
 let g_sortHashes: boolean;
 let g_tree: TreeDisplay;
 let g_tree_data: TreeBox;
 let g_view_data: string;
 let g_initial_info: string;
+let g_poseidon: Poseidon;
 
 async function main() {
     let json_config = await loadConfigOR(CONFIG_JSON, DEFAULT_CONFIG);
     if ((json_config.level < 2) || (json_config.level > 10))
         json_config = DEFAULT_CONFIG;
 
-    if (json_config !== DEFAULT_CONFIG)
-        g_initial_info = `Initialized tree from ${CONFIG_JSON}`;
-    else g_initial_info = `Displaing default tree. Configure custom tree at ${CONFIG_JSON}`;
-
+    g_poseidon = await buildPoseidon()
     g_control_top = 1;
     g_horiz_offset = 0;
-    g_tree_type = json_config.type;
+    g_tree_type = normalizedTreeType(json_config.type);
+    g_hash_type = normalizedHashType(json_config.hash);
     g_sortHashes = json_config.sort_hash;
-    g_tree = new TreeDisplay(initTreeType(g_tree_type, json_config.level, g_sortHashes), PRETTY);
+    g_tree = new TreeDisplay(initTreeType(g_tree_type, g_hash_type, json_config.level, g_sortHashes, g_poseidon), PRETTY);
     json_config.leaves.forEach(leaf => {
         g_tree.addLeaf(BigInt(leaf.index), leaf.value);
     })
@@ -51,9 +56,10 @@ async function main() {
     g_view_data = g_tree.viewTree(g_horiz_offset, VIEW_WIDTH, g_tree_data);
 
     if (json_config !== DEFAULT_CONFIG)
-        g_initial_info = `Initialized tree from ${CONFIG_JSON}\n${g_tree.NAME()}`;
-    else g_initial_info = `Displaing default tree. Configure custom tree at ${CONFIG_JSON}\n${g_tree.NAME()}`;
+        g_initial_info = `Initialized tree from ${CONFIG_JSON}\n`;
+    else g_initial_info = `Displaying default tree. Configure custom tree at ${CONFIG_JSON}\n`;
 
+    g_initial_info += `Type: ${g_tree_type}, Hash: ${g_hash_type}, Levels: ${json_config.level}, Sorted Hashes: ` + (g_sortHashes ? "Yes" : "No");
 
     // ===============================================
     // =========== Visual Screen Elements ============
@@ -89,7 +95,7 @@ async function main() {
     });
     g_control_top += TEXTBOX_HEIGHT;
 
-    const levelButton = blessed.button({
+    const resetButton = blessed.button({
         parent: formInputs,
         top: g_control_top,
         left: 1,
@@ -324,11 +330,11 @@ async function main() {
     const reinitTree = (levels: bigint, sort: boolean) => {
         g_horiz_offset = 0;
         g_sortHashes = sort;
-        g_tree = new TreeDisplay(initTreeType(g_tree_type, Number(levels), g_sortHashes), PRETTY);
+        g_tree = new TreeDisplay(initTreeType(g_tree_type, g_hash_type, Number(levels), g_sortHashes, g_poseidon), PRETTY);
         g_tree_data = g_tree.drawTree()
         g_view_data = g_tree.viewTree(g_horiz_offset, VIEW_WIDTH, g_tree_data);
         treeBox.setContent(g_view_data);
-        treeInfo.setContent(`Tree reinit! Levels: ${levels}, Sorted Hashes: ` + (sort ? "Yes" : "No"));
+        treeInfo.setContent(`Tree reinit!\nType: ${g_tree_type}, Hash: ${g_hash_type}, Levels: ${levels}, Sorted Hashes: ` + (sort ? "Yes" : "No"));
         screen.render();
     }
 
@@ -430,13 +436,10 @@ async function main() {
         reinitTree(g_tree.LEVELS_TOTAL(), false);
     });
 
-    // Change tree size
-    levelButton.on('press', () => {
+    // Re-init tree
+    resetButton.on('press', () => {
         let level = validatedLevel();
         if (level < 0) return;
-
-        if (g_tree.LEVELS_TOTAL() === BigInt(level))
-            return;
 
         reinitTree(BigInt(level), g_sortHashes);
     });

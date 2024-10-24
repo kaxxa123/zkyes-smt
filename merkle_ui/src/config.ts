@@ -2,8 +2,11 @@ import * as fs from "fs";
 import * as util from "util";
 
 import { ethers } from "ethers";
+import { Poseidon } from "circomlibjs";
+
 import {
     IMerkle,
+    HashFn,
     SMTNaive,
     SMTHashZero,
     SMTSingleLeaf,
@@ -18,6 +21,10 @@ export const TREE_TYPE_H0 = "h0";
 export const TREE_TYPE_SHORT = "short";
 export const TREE_TYPE_SHORT_EX = "shortex";
 
+export const HASH_DEFAULT = "";
+export const HASH_KECCAK256 = "keccak256";
+export const HASH_POSEIDON = "poseidon";
+
 export type LeafConfig = {
     index: bigint | number | string,
     value: string
@@ -25,6 +32,7 @@ export type LeafConfig = {
 
 export type TreeConfig = {
     type: string,
+    hash: string,
     level: number,
     sort_hash: boolean,
     leaves: LeafConfig[]
@@ -43,9 +51,17 @@ function isValidType(type: string): boolean {
         (type === TREE_TYPE_SHORT_EX);
 }
 
+function isValidHash(hash: string): boolean {
+    return (hash === HASH_DEFAULT) ||
+        (hash === HASH_KECCAK256) ||
+        (hash === HASH_POSEIDON);
+}
+
 function isTreeConfig(obj: any): obj is TreeConfig {
     return typeof obj.type === 'string' &&
         isValidType(obj.type) &&
+        typeof obj.hash === 'string' &&
+        isValidHash(obj.hash) &&
         typeof obj.level === 'number' &&
         typeof obj.sort_hash === 'boolean' &&
         Array.isArray(obj.leaves) &&
@@ -54,6 +70,65 @@ function isTreeConfig(obj: any): obj is TreeConfig {
 
 function normalizeIndex(config: LeafConfig): bigint {
     return BigInt(config.index);
+}
+
+export function normalizedTreeType(type: string): string {
+    if ((type === TREE_TYPE_NAIVE) ||
+        (type === TREE_TYPE_H0) ||
+        (type === TREE_TYPE_SHORT) ||
+        (type === TREE_TYPE_SHORT_EX))
+        return type;
+
+    if (type === TREE_TYPE_DEFAULT)
+        return TREE_TYPE_H0;
+
+    throw `Unknown tree type ${type}`;
+}
+
+export function normalizedHashType(hashType: string): string {
+    if ((hashType === HASH_POSEIDON) ||
+        (hashType === HASH_KECCAK256))
+        return hashType;
+
+    if (hashType === HASH_DEFAULT)
+        return HASH_KECCAK256;
+
+    throw `Unknown hash type ${hashType}`;
+}
+
+export function getHashFn(hashType: string, poseidonHash: Poseidon): HashFn {
+    const HashKeccak256 = (preimage: string) => ethers.keccak256("0x" + preimage).slice(2);
+
+    const HashPoseidon = (preimage: string) => {
+        // Preimage cannot be empty and must be in 32-byte chunks
+        if ((preimage.length == 0) || (preimage.length % 64 != 0))
+            throw "Poseidon: A preimage of 32-byte chunks is required.";
+
+        //break pre-image in 32-byte chunks
+        const chunks: bigint[] = [];
+        for (let pos = 0; pos < preimage.length;) {
+            chunks.push(BigInt("0x" + preimage.slice(pos, pos + 64)))
+            pos += 64;
+        }
+
+        let hashOut = poseidonHash(chunks);
+        if (hashOut.length != 32)
+            throw `Poseidon Hash unexpected length: ${hashOut.length}`;
+
+        // Encode byte array into a hex string
+        return Array.from(hashOut)
+            .map(byte => byte.toString(16).padStart(2, '0'))
+            .join('');
+    }
+
+    hashType = normalizedHashType(hashType)
+    if (hashType === HASH_KECCAK256)
+        return HashKeccak256;
+
+    else if (hashType === HASH_POSEIDON)
+        return HashPoseidon;
+
+    throw `Unknown hash type ${hashType}`;
 }
 
 export async function loadConfig(path: string): Promise<TreeConfig> {
@@ -87,22 +162,26 @@ export async function loadConfigOR(path: string, defConfig: TreeConfig): Promise
     return defConfig;
 }
 
-export function initTreeType(type: string, level: number, sort: boolean): IMerkle {
+export function initTreeType(type: string, hashType: string, level: number, sort: boolean, poseidonHash: Poseidon): IMerkle {
 
-    const HashKeccak256 = (preimage: string) => ethers.keccak256("0x" + preimage).slice(2);
+    const hashfn = getHashFn(hashType, poseidonHash);
+    const treeType = normalizedTreeType(type);
 
-    if (type === TREE_TYPE_NAIVE)
-        return new SMTNaive(HashKeccak256, BigInt(level), sort);
+    if (treeType === TREE_TYPE_NAIVE)
+        return new SMTNaive(hashfn, BigInt(level), sort);
 
-    else if (type === TREE_TYPE_SHORT)
-        return new SMTSingleLeaf(HashKeccak256, BigInt(level), sort);
+    else if (treeType === TREE_TYPE_H0)
+        return new SMTHashZero(hashfn, BigInt(level), sort);
 
-    else if (type === TREE_TYPE_SHORT_EX)
-        return new SMTSingleLeafEx(HashKeccak256, BigInt(level), sort);
+    else if (treeType === TREE_TYPE_SHORT)
+        return new SMTSingleLeaf(hashfn, BigInt(level), sort);
 
-    return new SMTHashZero(HashKeccak256, BigInt(level), sort);
+    else if (treeType === TREE_TYPE_SHORT_EX)
+        return new SMTSingleLeafEx(hashfn, BigInt(level), sort);
+
+    throw `Unknown tree type ${treeType}`;
 }
 
-export function initTreeByConfig(config: TreeConfig): IMerkle {
-    return initTreeType(config.type, config.level, config.sort_hash);
+export function initTreeByConfig(config: TreeConfig, poseidonHash: Poseidon): IMerkle {
+    return initTreeType(config.type, config.hash, config.level, config.sort_hash, poseidonHash);
 }

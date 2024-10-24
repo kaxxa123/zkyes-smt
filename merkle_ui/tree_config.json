@@ -1,5 +1,6 @@
 {
     "type": "shortex",
+    "hash": "poseidon",
     "level": 160,
     "sort_hash": false,
     "leaves": [

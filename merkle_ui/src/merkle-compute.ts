@@ -1,3 +1,4 @@
+import { buildPoseidon } from "circomlibjs";
 import { IMerkle } from "zkyes-smt"
 import { CONFIG_JSON, loadConfig, initTreeByConfig } from './config'
 
@@ -6,7 +7,7 @@ async function main() {
     console.log(config);
     console.log();
 
-    let tree: IMerkle = initTreeByConfig(config);
+    let tree: IMerkle = initTreeByConfig(config, await buildPoseidon());
     console.log(tree.NAME());
     console.log();
 
