@@ -57,7 +57,7 @@ Select the type of Merkle tree to use. Each maps to a different Sparse Merkle tr
 
 <BR />
 
-### tree_config.json | type
+### tree_config.json | hash
 
 `tree_config.json | "hash":` `"keccak256"` | `"poseidon"`
 
