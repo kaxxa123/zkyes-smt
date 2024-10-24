@@ -14,8 +14,9 @@ async function main() {
     config.leaves.forEach((leaf) => {
         let hash = tree.addLeaf(BigInt(leaf.index), leaf.value)
         console.log(`Added leaf #${leaf.index}`)
-        console.log(`   Hash:  ${hash}`)
-        console.log(`   Value: ${leaf.value}`)
+        console.log(`   Value:      ${leaf.value}`)
+        console.log(`   Leaf Hash:  ${hash}`)
+        console.log(`   Root:       ${tree.ROOT()}`)
         console.log()
     });
 
