@@ -22,6 +22,8 @@ This test was excuted against a Reth node. Some harcoded address values may chan
 
       ```JSON
       {
+      "type": "naive",
+      "hash": "keccak256",
       "level": 3,
       "sort_hash": true,
       "leaves": [
@@ -59,7 +61,7 @@ This test was excuted against a Reth node. Some harcoded address values may chan
 1. Cleanup earlier deployment, deploy and open console...
 
       ```BASH
-      cd pom_check
+      cd openzeppelin_pom
       rm ./ignition/deployments -rfv
 
       npx hardhat ignition deploy ./ignition/modules/deploy.ts  --network reth
