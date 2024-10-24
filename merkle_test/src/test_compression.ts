@@ -1,6 +1,7 @@
 import { ethers } from "ethers";
+import { buildPoseidon, Poseidon } from "circomlibjs";
 import { SMTNaive, SMTHashZero, SMTSingleLeaf, SMTSingleLeafEx } from "zkyes-smt"
-import { compressPoM, decompressPoM, PoM, IMerkle } from "zkyes-smt"
+import { compressPoM, decompressPoM, PoM, IMerkle, HashFn } from "zkyes-smt"
 
 const LEVEL = 5n;
 const SORT_MODE = false;
@@ -80,23 +81,70 @@ function fuzzTest(tree: IMerkle, repetitions: number | undefined = undefined) {
     }
 }
 
-function HashKeccak256(preimage: string): string {
-    return ethers.keccak256("0x" + preimage).slice(2)
+function getHashFn(poseidonHash: Poseidon | undefined): HashFn {
+    const HashKeccak256 = (preimage: string) => ethers.keccak256("0x" + preimage).slice(2);
+    if (poseidonHash === undefined)
+        return HashKeccak256;
+
+    const HashPoseidon = (preimage: string) => {
+        // Preimage cannot be empty and must be in 32-byte chunks
+        if ((preimage.length == 0) || (preimage.length % 64 != 0))
+            throw "Poseidon: A preimage of 32-byte chunks is required.";
+
+        //break pre-image in 32-byte chunks
+        const chunks: bigint[] = [];
+        for (let pos = 0; pos < preimage.length;) {
+            chunks.push(BigInt("0x" + preimage.slice(pos, pos + 64)))
+            pos += 64;
+        }
+
+        let hashOut = poseidonHash(chunks);
+        if (hashOut.length != 32)
+            throw `Poseidon Hash unexpected length: ${hashOut.length}`;
+
+        // Encode byte array into a hex string
+        return Array.from(hashOut)
+            .map(byte => byte.toString(16).padStart(2, '0'))
+            .join('');
+    }
+    return HashPoseidon;
 }
 
-function main(short: boolean = false) {
-    fuzzTest(new SMTNaive(HashKeccak256, LEVEL, SORT_MODE), short ? 10 : undefined);
+function mainTest(short: boolean, poseidon: Poseidon | undefined) {
+
+    let hashFn = getHashFn(poseidon);
+
+    fuzzTest(new SMTNaive(hashFn, LEVEL, SORT_MODE), short ? 10 : undefined);
     console.log("Completed SMTNaive test")
 
-    fuzzTest(new SMTHashZero(HashKeccak256, LEVEL, SORT_MODE), short ? 10 : undefined);
+    fuzzTest(new SMTHashZero(hashFn, LEVEL, SORT_MODE), short ? 10 : undefined);
     console.log("Completed SMTHashZero test")
 
-    fuzzTest(new SMTSingleLeaf(HashKeccak256, LEVEL, SORT_MODE), short ? 10 : undefined);
+    fuzzTest(new SMTSingleLeaf(hashFn, LEVEL, SORT_MODE), short ? 10 : undefined);
     console.log("Completed SMTSingleLeaf test")
 
-    fuzzTest(new SMTSingleLeafEx(HashKeccak256, LEVEL, SORT_MODE), short ? 10 : undefined);
+    fuzzTest(new SMTSingleLeafEx(hashFn, LEVEL, SORT_MODE), short ? 10 : undefined);
     console.log("Completed SMTSingleLeafEx test")
 }
 
-main(false);
-main(true);
+async function main() {
+    let poseidon = await buildPoseidon();
+    mainTest(false, undefined);
+    mainTest(true, undefined);
+    mainTest(false, poseidon);
+    mainTest(true, poseidon);
+
+    console.log()
+    console.log("All tests succeeded")
+    console.log()
+}
+
+// We recommend this pattern to be able to use async/await everywhere
+// and properly handle errors.
+main().catch((error) => {
+    console.log()
+    console.log("Failed!")
+    console.error(error);
+    console.log()
+    process.exitCode = 1;
+});

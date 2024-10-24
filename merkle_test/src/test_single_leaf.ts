@@ -4,24 +4,51 @@
 // Randomly add/remove tree leaves and check that the roots always match.
 
 import { ethers } from "ethers";
-import { LOG_LEVEL, SMTHashZero, SMTSingleLeaf } from "zkyes-smt"
+import { buildPoseidon, Poseidon } from "circomlibjs";
+import { LOG_LEVEL, SMTHashZero, SMTSingleLeaf, HashFn } from "zkyes-smt"
 
 const LEVEL = 5n;
 const SORT_MODE = false;
-
-const HashKeccak256 = (preimage: string) => ethers.keccak256("0x" + preimage).slice(2);
-
-const tree0 = new SMTHashZero(HashKeccak256, LEVEL, SORT_MODE);
-const tree1 = new SMTSingleLeaf(HashKeccak256, LEVEL, SORT_MODE, LOG_LEVEL.LOW);
-const MAX = Number(tree1.upperIndex());
 
 function RandomNum(max: number): number {
     return Math.floor(Math.random() * (max + 1));
 }
 
+function getHashFn(poseidonHash: Poseidon | undefined): HashFn {
+    const HashKeccak256 = (preimage: string) => ethers.keccak256("0x" + preimage).slice(2);
+    if (poseidonHash === undefined)
+        return HashKeccak256;
+
+    const HashPoseidon = (preimage: string) => {
+        // Preimage cannot be empty and must be in 32-byte chunks
+        if ((preimage.length == 0) || (preimage.length % 64 != 0))
+            throw "Poseidon: A preimage of 32-byte chunks is required.";
+
+        //break pre-image in 32-byte chunks
+        const chunks: bigint[] = [];
+        for (let pos = 0; pos < preimage.length;) {
+            chunks.push(BigInt("0x" + preimage.slice(pos, pos + 64)))
+            pos += 64;
+        }
+
+        let hashOut = poseidonHash(chunks);
+        if (hashOut.length != 32)
+            throw `Poseidon Hash unexpected length: ${hashOut.length}`;
+
+        // Encode byte array into a hex string
+        return Array.from(hashOut)
+            .map(byte => byte.toString(16).padStart(2, '0'))
+            .join('');
+    }
+    return HashPoseidon;
+}
 
 // If we identify a problematic sequence we can reproduce it here...
 function reproduce() {
+
+    const HashKeccak256 = (preimage: string) => ethers.keccak256("0x" + preimage).slice(2);
+    const tree0 = new SMTHashZero(HashKeccak256, LEVEL, SORT_MODE);
+    const tree1 = new SMTSingleLeaf(HashKeccak256, LEVEL, SORT_MODE, LOG_LEVEL.LOW);
 
     let addrList = [[2, true], [3, true], [3, true]];
 
@@ -40,7 +67,12 @@ function reproduce() {
     })
 }
 
-function main() {
+function mainTest(poseidon: Poseidon | undefined) {
+
+    const hashFn = getHashFn(poseidon);
+    const tree0 = new SMTHashZero(hashFn, LEVEL, SORT_MODE);
+    const tree1 = new SMTSingleLeaf(hashFn, LEVEL, SORT_MODE, LOG_LEVEL.LOW);
+    const MAX = Number(tree1.upperIndex());
 
     for (let pos = 0; pos < MAX * 10; ++pos) {
         let address = RandomNum(MAX);
@@ -63,4 +95,22 @@ function main() {
     }
 }
 
-main();
+async function main() {
+    let poseidon = await buildPoseidon();
+    mainTest(undefined);
+    mainTest(poseidon);
+
+    console.log()
+    console.log("All tests succeeded")
+    console.log()
+}
+
+// We recommend this pattern to be able to use async/await everywhere
+// and properly handle errors.
+main().catch((error) => {
+    console.log()
+    console.log("Failed!")
+    console.error(error);
+    console.log()
+    process.exitCode = 1;
+});
