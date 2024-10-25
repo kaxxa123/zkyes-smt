@@ -2,7 +2,7 @@
 
 In this project we review the Iden3 Sparse Merkle Tree implementation.
 
-Here we isolate the SMT implementation, which was copied from [iden3/contracts](https://github.com/iden3/contracts/blob/master/contracts/lib/SmtLib.sol) on 17th Sep 2024.
+Here we isolate the SMT implementation, which was copied from [iden3/contracts](https://github.com/iden3/contracts/blob/master/contracts/lib/SmtLib.sol) on 25th Oct 2024.
 
 The iden3 SMT, in case of a single non-zero leaf subtree, uses the leaf hash as the subtree root hash. In large trees this eliminates many hashing operations. For example: <BR />
 `Hash(Hash(Hash(value), 0), 0)` replaced by `Hash(index, value, 1)`
@@ -47,7 +47,7 @@ The Solarity SMT, was developed starting from the iden3 SMT. Hence some [conclus
     npx hardhat console --network reth
     ```
 
-1. Run test and demonstrated "reversed" address traversal in iden3 SMT:
+1. Run test and demonstrate "reversed" address traversal in iden3 SMT:
 
     Setting leaves for addresses: <BR />
     `0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266' -> h0` <BR />
