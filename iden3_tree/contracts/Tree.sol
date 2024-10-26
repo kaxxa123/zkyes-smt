@@ -30,30 +30,4 @@ contract TokenSnapshot {
     function pom(address addr) public view returns (SmtLib.Proof memory) {
         return smt.getProof(uint256(uint160(addr)));
     }
-
-    // Helpers to produce keccak256 hashes
-    function hash3(
-        bytes32 a,
-        bytes32 b,
-        bytes32 c
-    ) public pure returns (bytes32 result) {
-        assembly {
-            let free_ptr := mload(64)
-
-            mstore(free_ptr, a)
-            mstore(add(free_ptr, 32), b)
-            mstore(add(free_ptr, 64), c)
-
-            result := keccak256(free_ptr, 96)
-        }
-    }
-
-    function hash2(bytes32 a, bytes32 b) public pure returns (bytes32 result) {
-        assembly {
-            mstore(0, a)
-            mstore(32, b)
-
-            result := keccak256(0, 64)
-        }
-    }
 }

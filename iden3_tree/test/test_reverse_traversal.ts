@@ -3,25 +3,42 @@ import { ethers } from "hardhat";
 import { expect } from 'chai';
 
 const TREE_DEPTH = 160;
+const hashKeccak256 = process.env.HASH_KECCAK256 === "true";
 
 describe("Inverted traveral test", function () {
 
     async function deployTreeTest() {
-        // Deploy an SMT with depth of 160 such that to have 
-        // a leaf for each possible Ethereum address
-        const SmtLibFactory = await ethers.getContractFactory("SmtLib");
+        const MyPoseidon2LFactory = await ethers.getContractFactory("MyPoseidon2L");
+        const MyPoseidon3LFactory = await ethers.getContractFactory("MyPoseidon3L");
+        const poseidon2 = await MyPoseidon2LFactory.deploy();
+        const poseidon3 = await MyPoseidon3LFactory.deploy();
+
+        const MyKeccak2LFactory = await ethers.getContractFactory("MyKeccak2L");
+        const MyKeccak3LFactory = await ethers.getContractFactory("MyKeccak3L");
+        const keccak2 = await MyKeccak2LFactory.deploy();
+        const keccak3 = await MyKeccak3LFactory.deploy();
+
+        const hash2 = hashKeccak256 ? keccak2 : poseidon2;
+        const hash3 = hashKeccak256 ? keccak3 : poseidon3;
+
+        const SmtLibFactory = await ethers.getContractFactory("SmtLib", {
+            libraries: {
+                PoseidonUnit2L: await hash2.getAddress(),
+                PoseidonUnit3L: await hash3.getAddress(),
+            },
+        });
         const smtlib = await SmtLibFactory.deploy();
 
+        // Initialze tree with 20-byte/160-bit leaf addresses
+        // Matching the ethereum address space.
         const TreeFactory = await ethers.getContractFactory("TokenSnapshot", {
             libraries: {
                 SmtLib: smtlib,
             },
         });
-        // Initialze tree with 20-byte/160-bit leaf addresses
-        // Matching the ethereum address space.
         const tree = await TreeFactory.deploy(TREE_DEPTH);
 
-        return { tree };
+        return { tree, hash2, hash3 };
     }
 
     function normalize32Bytes(input: string): string {
@@ -43,23 +60,23 @@ describe("Inverted traveral test", function () {
     });
 
     it("Should correctly add one leaf.", async function () {
-        const { tree } = await loadFixture(deployTreeTest);
+        const { tree, hash2, hash3 } = await loadFixture(deployTreeTest);
 
         await tree.recordBalance('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', 5n * 10n ** 18n)
         const root = "0x" + (await tree.getRoot()).toString(16)
 
         // Compute leaf hash
-        const h0 = await tree.hash3(
+        const h0 = await hash3.poseidon([
             "0x000000000000000000000000f39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
             "0x0000000000000000000000000000000000000000000000004563918244f40000",
-            "0x0000000000000000000000000000000000000000000000000000000000000001")
+            "0x0000000000000000000000000000000000000000000000000000000000000001"])
 
         // Confirm root match
         expect(root).to.equal(h0)
     });
 
     it("Should add two leaves.", async function () {
-        const { tree } = await loadFixture(deployTreeTest);
+        const { tree, hash2, hash3 } = await loadFixture(deployTreeTest);
 
         // Address = 1111...0110
         await tree.recordBalance('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', 5n * 10n ** 18n)
@@ -68,18 +85,18 @@ describe("Inverted traveral test", function () {
         const root = "0x" + (await tree.getRoot()).toString(16)
 
         // Compute leaf hashes
-        const h0 = await tree.hash3(
+        const h0 = await hash3.poseidon([
             "0x000000000000000000000000f39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
             "0x0000000000000000000000000000000000000000000000004563918244f40000",
-            "0x0000000000000000000000000000000000000000000000000000000000000001")
+            "0x0000000000000000000000000000000000000000000000000000000000000001"])
 
-        const h1 = await tree.hash3(
+        const h1 = await hash3.poseidon([
             "0x0000000000000000000000003C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
             "0x0000000000000000000000000000000000000000000000004563918244f40000",
-            "0x0000000000000000000000000000000000000000000000000000000000000001")
+            "0x0000000000000000000000000000000000000000000000000000000000000001"])
 
         // Compute regular traversal root
-        const regularRoot = await tree.hash2(h1, h0);
+        const regularRoot = await hash2.poseidon([h1, h0]);
 
         // Confirm root NOT match
         expect(root).to.not.equal(regularRoot)
@@ -92,7 +109,7 @@ describe("Inverted traveral test", function () {
         //                      |---- Traverse left, Right = Current_Sibling (h0)
         // Hash(Hash(h1 | h0) | 0)
         const zero = "0x0000000000000000000000000000000000000000000000000000000000000000"
-        const reverseRoot = await tree.hash2(regularRoot, zero);
+        const reverseRoot = await hash2.poseidon([regularRoot, zero]);
 
         // Confirm root match
         expect(root).to.equal(reverseRoot)
@@ -102,7 +119,7 @@ describe("Inverted traveral test", function () {
     });
 
     it("Should add two leaves.", async function () {
-        const { tree } = await loadFixture(deployTreeTest);
+        const { tree, hash2, hash3 } = await loadFixture(deployTreeTest);
 
         // Address = 1111...0110
         await tree.recordBalance('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', 5n * 10n ** 18n)
@@ -111,18 +128,18 @@ describe("Inverted traveral test", function () {
         const root = "0x" + (await tree.getRoot()).toString(16)
 
         // Compute leaf hashes
-        const h0 = await tree.hash3(
+        const h0 = await hash3.poseidon([
             "0x000000000000000000000000f39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
             "0x0000000000000000000000000000000000000000000000004563918244f40000",
-            "0x0000000000000000000000000000000000000000000000000000000000000001")
+            "0x0000000000000000000000000000000000000000000000000000000000000001"])
 
-        const h1 = await tree.hash3(
+        const h1 = await hash3.poseidon([
             "0x00000000000000000000000015d34AAf54267DB7D7c367839AAf71A00a2C6A65",
             "0x0000000000000000000000000000000000000000000000004563918244f40000",
-            "0x0000000000000000000000000000000000000000000000000000000000000001")
+            "0x0000000000000000000000000000000000000000000000000000000000000001"])
 
         // Compute regular traversal root
-        const regularRoot = await tree.hash2(h1, h0);
+        const regularRoot = await hash2.poseidon([h1, h0]);
 
         // Confirm root NOT match
         expect(root).to.not.equal(regularRoot)
@@ -133,7 +150,7 @@ describe("Inverted traveral test", function () {
         //  New:     0011...0 1 0 1
         //                        |-- Traverse right, Left = Current_Sibling (h0)
         // Hash(h0 | h1)
-        const reverseRoot = await tree.hash2(h0, h1);
+        const reverseRoot = await hash2.poseidon([h0, h1]);
 
         // Confirm root match
         expect(root).to.equal(reverseRoot)
@@ -143,7 +160,7 @@ describe("Inverted traveral test", function () {
     });
 
     it("Should add ten leaves.", async function () {
-        const { tree } = await loadFixture(deployTreeTest);
+        const { tree, hash2, hash3 } = await loadFixture(deployTreeTest);
 
         await tree.recordBalance('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', 5n * 10n ** 18n)
         await tree.recordBalance('0x70997970C51812dc3A010C7d01b50e0d17dc79C8', 6n * 10n ** 18n)

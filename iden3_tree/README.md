@@ -27,6 +27,13 @@ The Solarity SMT, was developed starting from the iden3 SMT. Hence some [conclus
 
 ## Testing
 
+1. Run test scripts:
+
+    ```BASH
+    HASH_KECCAK256="true" npx hardhat test
+    HASH_KECCAK256="false" npx hardhat test
+    ```
+
 1. Start clean Reth node
 
     ```BASH
@@ -43,7 +50,12 @@ The Solarity SMT, was developed starting from the iden3 SMT. Hence some [conclus
     cd iden3_tree
     rm ./ignition/deployments -rfv
 
-    npx hardhat ignition deploy ./ignition/modules/deploy.ts  --network reth
+    # Deploy tree using Keccak256 hash
+    HASH_KECCAK256="true" npx hardhat ignition deploy ./ignition/modules/deploy.ts  --network reth
+
+    # Deploy tree using Poseidon hash
+    HASH_KECCAK256="false" npx hardhat ignition deploy ./ignition/modules/deploy.ts  --network reth
+
     npx hardhat console --network reth
     ```
 
@@ -73,10 +85,23 @@ The Solarity SMT, was developed starting from the iden3 SMT. Hence some [conclus
     contract_data = await readFile(`./ignition/deployments/${chain_type}/deployed_addresses.json`, 'utf8')
     contract_addrs = JSON.parse(contract_data.split('#').join('_'))
 
+    // Initialize hash instances
+    const MyPoseidon2LFactory = await ethers.getContractFactory("MyPoseidon2L");
+    const MyPoseidon3LFactory = await ethers.getContractFactory("MyPoseidon3L");
+    const poseidon2 = await MyPoseidon2LFactory.attach(contract_addrs.TreeModule_MyPoseidon2L);
+    const poseidon3 = await MyPoseidon3LFactory.attach(contract_addrs.TreeModule_MyPoseidon3L);
+
+    const MyKeccak2LFactory = await ethers.getContractFactory("MyKeccak2L");
+    const MyKeccak3LFactory = await ethers.getContractFactory("MyKeccak3L");
+    const keccak2 = await MyKeccak2LFactory.attach(contract_addrs.TreeModule_MyKeccak2L);
+    const keccak3 = await MyKeccak3LFactory.attach(contract_addrs.TreeModule_MyKeccak3L);
+
     // Initialize contract instance
     const TreeFactory = await ethers.getContractFactory(
                 "TokenSnapshot", 
-                { libraries: { SmtLib: contract_addrs.TreeModule_SmtLib }})
+                { libraries: { 
+                    SmtLib: contract_addrs.TreeModule_SmtLib
+                }})
     const tree = await TreeFactory.attach(contract_addrs.TreeModule_TokenSnapshot)
 
     await tree.getMaxDepth()
@@ -86,13 +111,13 @@ The Solarity SMT, was developed starting from the iden3 SMT. Hence some [conclus
     // the right branch of the root. But not in this case.
     // Note the MSBs/LSBs of the address 1111...0110
     await tree.recordBalance('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', 5n*10n**18n)
-    root = "0x" + (await tree.getRoot()).toString(16)
+    root = await tree.getRoot()
 
     // Compute leaf hash
-    h0 = await tree.hash3(
+    h0 = await keccak3.poseidon([
     "0x000000000000000000000000f39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "0x0000000000000000000000000000000000000000000000004563918244f40000", 
-    "0x0000000000000000000000000000000000000000000000000000000000000001")
+    "0x0000000000000000000000000000000000000000000000000000000000000001"])
 
     // Confirm root match
     (h0 === root)
@@ -101,17 +126,17 @@ The Solarity SMT, was developed starting from the iden3 SMT. Hence some [conclus
     // the left branch of the root. But not in this case.
     // Note the MSBs/LSBs of the address 0011...1100
     await tree.recordBalance('0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC', 5n*10n**18n)
-    root = "0x" + (await tree.getRoot()).toString(16)
+    root = await tree.getRoot()
 
     // Compute leaf hash
-    h1 = await tree.hash3(
+    h1 = await keccak3.poseidon([
     "0x0000000000000000000000003C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
     "0x0000000000000000000000000000000000000000000000004563918244f40000", 
-    "0x0000000000000000000000000000000000000000000000000000000000000001")
+    "0x0000000000000000000000000000000000000000000000000000000000000001"])
 
     // Compute the expected new root
     // Hash(h1 | h0)
-    newRoot = await tree.hash2(h1,h0)
+    newRoot = await keccak2.poseidon([h1,h0])
 
     // Confirm that the two roots don't match
     (root !== newRoot)
@@ -123,7 +148,7 @@ The Solarity SMT, was developed starting from the iden3 SMT. Hence some [conclus
     //                      |---- Traverse left, Right = Current_Sibling (h0)
     // Hash(Hash(h1 | h0) | 0)
     zero = "0x0000000000000000000000000000000000000000000000000000000000000000"
-    actualRoot = await tree.hash2(newRoot,zero)
+    actualRoot = await keccak2.poseidon([newRoot,zero])
 
     // Confirm root match
     (actualRoot === root)

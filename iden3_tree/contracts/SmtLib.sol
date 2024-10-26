@@ -679,24 +679,15 @@ library SmtLib {
         uint256 nodeHash = 0;
 
         // AlexZ: LEAF:  Hash(index | value | 1)
-        // Replacing poseidon with keccak256 to facilitate testing
-        // ...against our client side Merkle tree.
         if (node.nodeType == NodeType.LEAF) {
-            nodeHash = uint256(
-                keccak256(abi.encode(node.index, node.value, uint256(1)))
-            );
-
-            // uint256[3] memory params = [node.index, node.value, uint256(1)];
-            // nodeHash = PoseidonUnit3L.poseidon(params);
+            uint256[3] memory params = [node.index, node.value, uint256(1)];
+            nodeHash = PoseidonUnit3L.poseidon(params);
         }
         // AlexZ: MIDDLE: Hash(left | right)
         else if (node.nodeType == NodeType.MIDDLE) {
-            nodeHash = uint256(
-                keccak256(abi.encode(node.childLeft, node.childRight))
+            nodeHash = PoseidonUnit2L.poseidon(
+                [node.childLeft, node.childRight]
             );
-            // nodeHash = PoseidonUnit2L.poseidon(
-            // [node.childLeft, node.childRight]
-            // );
         }
         return nodeHash; // Note: expected to return 0 if NodeType.EMPTY, which is the only option left
     }
