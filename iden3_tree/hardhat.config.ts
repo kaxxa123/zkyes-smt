@@ -1,5 +1,8 @@
-import { HardhatUserConfig } from "hardhat/config";
+import { vars, HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
+
+const SECRET_KEY_0 = vars.get("SECRET_KEY_0");
+const INFURA_PROJECT_ID = vars.get("INFURA_PROJECT_ID");
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -16,7 +19,11 @@ const config: HardhatUserConfig = {
       url: "http://localhost:8545",
       gasPrice: 225000000000,
       accounts: { mnemonic: "test test test test test test test test test test test junk" }
-    }
+    },
+    eth: {
+      url: `https://mainnet.infura.io/v3/${INFURA_PROJECT_ID}`,
+      accounts: [SECRET_KEY_0]
+    },
   }
 
 };

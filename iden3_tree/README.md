@@ -25,13 +25,25 @@ The Solarity SMT, was developed starting from the iden3 SMT. Hence some [conclus
     The iden3 library does not employ the unique id system used in Solarity. It rather works directly with `parent_hash -> (left_hash, right_hash)`. This makes reproducing the same tree off-chain easier. 
 
 
+## Poseidon On-Chain Libraries
+
+Poseidon hash computation libraries are installed on Ethereum mainnet at these addresses. These can be useful on testing:
+
+| Library          | Address                                      |
+|------------------|----------------------------------------------|
+| `PoseidonUnit1L` | `0xC72D76D7271924a2AD54a19D216640FeA3d138d9` | 
+| `PoseidonUnit2L` | `0x72F721D9D5f91353B505207C63B56cF3d9447edB` | 
+| `PoseidonUnit3L` | `0x5Bc89782d5eBF62663Df7Ce5fb4bc7408926A240` | 
+| `PoseidonUnit4L` | `0x0695cF2c6dfc438a4E40508741888198A6ccacC2` | 
+
+
 ## Testing
 
 1. Run test scripts:
 
     ```BASH
-    HASH_KECCAK256="true" npx hardhat test
-    HASH_KECCAK256="false" npx hardhat test
+    npx hardhat test
+    npx hardhat test
     ```
 
 1. Start clean Reth node
@@ -51,10 +63,7 @@ The Solarity SMT, was developed starting from the iden3 SMT. Hence some [conclus
     rm ./ignition/deployments -rfv
 
     # Deploy tree using Keccak256 hash
-    HASH_KECCAK256="true" npx hardhat ignition deploy ./ignition/modules/deploy.ts  --network reth
-
-    # Deploy tree using Poseidon hash
-    HASH_KECCAK256="false" npx hardhat ignition deploy ./ignition/modules/deploy.ts  --network reth
+    npx hardhat ignition deploy ./ignition/modules/deploy.ts  --network reth
 
     npx hardhat console --network reth
     ```
@@ -86,11 +95,6 @@ The Solarity SMT, was developed starting from the iden3 SMT. Hence some [conclus
     contract_addrs = JSON.parse(contract_data.split('#').join('_'))
 
     // Initialize hash instances
-    const MyPoseidon2LFactory = await ethers.getContractFactory("MyPoseidon2L");
-    const MyPoseidon3LFactory = await ethers.getContractFactory("MyPoseidon3L");
-    const poseidon2 = await MyPoseidon2LFactory.attach(contract_addrs.TreeModule_MyPoseidon2L);
-    const poseidon3 = await MyPoseidon3LFactory.attach(contract_addrs.TreeModule_MyPoseidon3L);
-
     const MyKeccak2LFactory = await ethers.getContractFactory("MyKeccak2L");
     const MyKeccak3LFactory = await ethers.getContractFactory("MyKeccak3L");
     const keccak2 = await MyKeccak2LFactory.attach(contract_addrs.TreeModule_MyKeccak2L);
