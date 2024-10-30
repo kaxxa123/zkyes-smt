@@ -104,14 +104,35 @@ export function getHashFn(hashType: string, poseidonHash: Poseidon): HashFn {
         if ((preimage.length == 0) || (preimage.length % 64 != 0))
             throw "Poseidon: A preimage of 32-byte chunks is required.";
 
-        //break pre-image in 32-byte chunks
-        const chunks: bigint[] = [];
-        for (let pos = 0; pos < preimage.length;) {
-            chunks.push(BigInt("0x" + preimage.slice(pos, pos + 64)))
-            pos += 64;
+        // Hash uint256 values
+        const hashU256 = (): Uint8Array => {
+            //break pre-image in 32-byte chunks
+            const chunks: bigint[] = [];
+            for (let pos = 0; pos < preimage.length;) {
+                chunks.push(BigInt("0x" + preimage.slice(pos, pos + 64)))
+                pos += 64;
+            }
+
+            return poseidonHash(chunks);
         }
 
-        let hashOut = poseidonHash(chunks);
+        // Hash 32-byte blobs
+        const hashBytes = (): Uint8Array => {
+            //break pre-image in 32-byte chunks
+            const chunks: Uint8Array[] = [];
+            for (let pos = 0; pos < preimage.length;) {
+                const buffer = Buffer.from(preimage.slice(pos, pos + 64), 'hex');
+                chunks.push(new Uint8Array(buffer))
+                pos += 64;
+            }
+
+            return poseidonHash(chunks)
+        }
+
+        // SMTSingleLeafEx is special in that leaf hashes are computed
+        // over uint256 values rather than 32-byte blobs. We identify this
+        // special case from the preimage size.
+        let hashOut = (preimage.length === 64 * 3) ? hashU256() : hashBytes();
         if (hashOut.length != 32)
             throw `Poseidon Hash unexpected length: ${hashOut.length}`;
 
