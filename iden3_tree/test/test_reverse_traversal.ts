@@ -3,23 +3,14 @@ import { ethers } from "hardhat";
 import { expect } from 'chai';
 
 const TREE_DEPTH = 160;
-const hashKeccak256 = process.env.HASH_KECCAK256 === "true";
 
 describe("Inverted traveral test", function () {
 
     async function deployTreeTest() {
-        const MyPoseidon2LFactory = await ethers.getContractFactory("MyPoseidon2L");
-        const MyPoseidon3LFactory = await ethers.getContractFactory("MyPoseidon3L");
-        const poseidon2 = await MyPoseidon2LFactory.deploy();
-        const poseidon3 = await MyPoseidon3LFactory.deploy();
-
         const MyKeccak2LFactory = await ethers.getContractFactory("MyKeccak2L");
         const MyKeccak3LFactory = await ethers.getContractFactory("MyKeccak3L");
-        const keccak2 = await MyKeccak2LFactory.deploy();
-        const keccak3 = await MyKeccak3LFactory.deploy();
-
-        const hash2 = hashKeccak256 ? keccak2 : poseidon2;
-        const hash3 = hashKeccak256 ? keccak3 : poseidon3;
+        const hash2 = await MyKeccak2LFactory.deploy();
+        const hash3 = await MyKeccak3LFactory.deploy();
 
         const SmtLibFactory = await ethers.getContractFactory("SmtLib", {
             libraries: {
@@ -174,10 +165,12 @@ describe("Inverted traveral test", function () {
         await tree.recordBalance('0xa0Ee7A142d267C1f36714E4a8F75612F20a79720', 14n * 10n ** 18n)
         const root = "0x" + normalize32Bytes((await tree.getRoot()).toString(16))
 
-        console.log(`Expected: 0x061b97353fab86ebc788e280af3b1c7ed983fad17fbfd6b23ff1b8a153a7fd51`)
+        const expectedRoot = "0x061b97353fab86ebc788e280af3b1c7ed983fad17fbfd6b23ff1b8a153a7fd51";
+
+        console.log(`Expected: ${expectedRoot}`)
         console.log(`Actual:   ${root}`)
 
         // Confirm root match
-        expect(root).to.equal("0x061b97353fab86ebc788e280af3b1c7ed983fad17fbfd6b23ff1b8a153a7fd51")
+        expect(root).to.equal(expectedRoot)
     });
 });
