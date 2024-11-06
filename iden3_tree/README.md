@@ -24,20 +24,15 @@ The Solarity SMT, was developed starting from the iden3 SMT. Hence some [conclus
 
     The iden3 library does not employ the unique id system used in Solarity. It rather works directly with `parent_hash -> (left_hash, right_hash)`. This makes reproducing the same tree off-chain easier. 
 
+<BR />
 
-## Poseidon On-Chain Libraries
+## Poseidon Hashing
 
-Poseidon hash computation libraries are installed on Ethereum mainnet at these addresses. These can be useful on testing:
+[Check the following for details on Poseidon hashing implementation](./Poseidon.md).
 
-| Library          | Address                                      |
-|------------------|----------------------------------------------|
-| `PoseidonUnit1L` | `0xC72D76D7271924a2AD54a19D216640FeA3d138d9` | 
-| `PoseidonUnit2L` | `0x72F721D9D5f91353B505207C63B56cF3d9447edB` | 
-| `PoseidonUnit3L` | `0x5Bc89782d5eBF62663Df7Ce5fb4bc7408926A240` | 
-| `PoseidonUnit4L` | `0x0695cF2c6dfc438a4E40508741888198A6ccacC2` | 
+<BR />
 
-
-## Testing
+## Testing with Keccak256
 
 1. Run test scripts:
 
