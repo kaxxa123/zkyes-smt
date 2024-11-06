@@ -7,7 +7,8 @@
     "build": "rm ./build -rf && tsc",
     "test": "node ./build/src/test_single_leafex.js",
     "test_single": "node ./build/src/test_single_leaf.js",
-    "test_compress": "node ./build/src/test_compression.js"
+    "test_compress": "node ./build/src/test_compression.js",
+    "test_circom": "node ./build/src/test_circom_js_smt.js"
   },
   "keywords": [],
   "author": "",
