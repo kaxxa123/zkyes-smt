@@ -1,6 +1,6 @@
 import { ethers } from "ethers";
 import { buildPoseidon, Poseidon } from "circomlibjs";
-import { SMTNaive, SMTHashZero, SMTSingleLeaf, SMTSingleLeafEx } from "zkyes-smt"
+import { buildSMTNaive, buildSMTHashZero, buildSMTSingleLeaf, buildSMTSingleLeafEx } from "zkyes-smt"
 import { compressPoM, decompressPoM, PoM, IMerkle, HashFn } from "zkyes-smt"
 
 const LEVEL = 5n;
@@ -54,7 +54,7 @@ function verifyCompression(smt: IMerkle, decompressed: PoM, alwaysLog: boolean =
     return ret;
 }
 
-function fuzzTest(tree: IMerkle, repetitions: number | undefined = undefined) {
+async function fuzzTest(tree: IMerkle, repetitions: number | undefined = undefined) {
     const MAX = Number(tree.upperIndex());
     let alwaysLog = false;
 
@@ -67,12 +67,12 @@ function fuzzTest(tree: IMerkle, repetitions: number | undefined = undefined) {
 
         console.log("==================================================================");
         console.log(`${pos}. Adding leaf ${addrAdd}`)
-        let leaf = tree.addLeaf(BigInt(addrAdd), addrAdd.toString(16))
+        let leaf = await tree.addLeaf(BigInt(addrAdd), addrAdd.toString(16))
 
         console.log(`${pos}. Root after adding leaf ${addrAdd} : ${tree.ROOT()}`)
 
         console.log(`${pos}. Proving leaf ${addrProof}`)
-        let proof = tree.getProof(BigInt(addrProof));
+        let proof = await tree.getProof(BigInt(addrProof));
 
         if (!verifyCompression(tree, proof, alwaysLog))
             throw "Compression failed!"
@@ -82,11 +82,11 @@ function fuzzTest(tree: IMerkle, repetitions: number | undefined = undefined) {
 }
 
 function getHashFn(poseidonHash: Poseidon | undefined): HashFn {
-    const HashKeccak256 = (preimage: string) => ethers.keccak256("0x" + preimage).slice(2);
+    const HashKeccak256 = async (preimage: string) => ethers.keccak256("0x" + preimage).slice(2);
     if (poseidonHash === undefined)
         return HashKeccak256;
 
-    const HashPoseidon = (preimage: string) => {
+    const HashPoseidon = async (preimage: string) => {
         // Preimage cannot be empty and must be in 32-byte chunks
         if ((preimage.length == 0) || (preimage.length % 64 != 0))
             throw "Poseidon: A preimage of 32-byte chunks is required.";
@@ -131,29 +131,29 @@ function getHashFn(poseidonHash: Poseidon | undefined): HashFn {
     return HashPoseidon;
 }
 
-function mainTest(short: boolean, poseidon: Poseidon | undefined) {
+async function mainTest(short: boolean, poseidon: Poseidon | undefined) {
 
     let hashFn = getHashFn(poseidon);
 
-    fuzzTest(new SMTNaive(hashFn, LEVEL, SORT_MODE), short ? 10 : undefined);
+    await fuzzTest(await buildSMTNaive(hashFn, LEVEL, SORT_MODE), short ? 10 : undefined);
     console.log("Completed SMTNaive test")
 
-    fuzzTest(new SMTHashZero(hashFn, LEVEL, SORT_MODE), short ? 10 : undefined);
+    await fuzzTest(await buildSMTHashZero(hashFn, LEVEL, SORT_MODE), short ? 10 : undefined);
     console.log("Completed SMTHashZero test")
 
-    fuzzTest(new SMTSingleLeaf(hashFn, LEVEL, SORT_MODE), short ? 10 : undefined);
+    await fuzzTest(await buildSMTSingleLeaf(hashFn, LEVEL, SORT_MODE), short ? 10 : undefined);
     console.log("Completed SMTSingleLeaf test")
 
-    fuzzTest(new SMTSingleLeafEx(hashFn, LEVEL, SORT_MODE), short ? 10 : undefined);
+    await fuzzTest(await buildSMTSingleLeafEx(hashFn, LEVEL, SORT_MODE), short ? 10 : undefined);
     console.log("Completed SMTSingleLeafEx test")
 }
 
 async function main() {
     let poseidon = await buildPoseidon();
-    mainTest(false, undefined);
-    mainTest(true, undefined);
-    mainTest(false, poseidon);
-    mainTest(true, poseidon);
+    await mainTest(false, undefined);
+    await mainTest(true, undefined);
+    await mainTest(false, poseidon);
+    await mainTest(true, poseidon);
 
     console.log()
     console.log("All tests succeeded")

@@ -5,7 +5,7 @@
 
 import { ethers } from "ethers";
 import { buildPoseidon, Poseidon } from "circomlibjs";
-import { LOG_LEVEL, SMTHashZero, SMTSingleLeaf, HashFn } from "zkyes-smt"
+import { LOG_LEVEL, buildSMTHashZero, buildSMTSingleLeaf, HashFn } from "zkyes-smt"
 
 const LEVEL = 5n;
 const SORT_MODE = false;
@@ -15,11 +15,11 @@ function RandomNum(max: number): number {
 }
 
 function getHashFn(poseidonHash: Poseidon | undefined): HashFn {
-    const HashKeccak256 = (preimage: string) => ethers.keccak256("0x" + preimage).slice(2);
+    const HashKeccak256 = async (preimage: string) => ethers.keccak256("0x" + preimage).slice(2);
     if (poseidonHash === undefined)
         return HashKeccak256;
 
-    const HashPoseidon = (preimage: string) => {
+    const HashPoseidon = async (preimage: string) => {
         // Preimage cannot be empty and must be in 32-byte chunks
         if ((preimage.length == 0) || (preimage.length % 64 != 0))
             throw "Poseidon: A preimage of 32-byte chunks is required.";
@@ -65,17 +65,18 @@ function getHashFn(poseidonHash: Poseidon | undefined): HashFn {
 }
 
 // If we identify a problematic sequence we can reproduce it here...
-function reproduce() {
+async function reproduce() {
 
-    const HashKeccak256 = (preimage: string) => ethers.keccak256("0x" + preimage).slice(2);
-    const tree0 = new SMTHashZero(HashKeccak256, LEVEL, SORT_MODE);
-    const tree1 = new SMTSingleLeaf(HashKeccak256, LEVEL, SORT_MODE, LOG_LEVEL.LOW);
+    const HashKeccak256 = async (preimage: string) => ethers.keccak256("0x" + preimage).slice(2);
+    const tree0 = await buildSMTHashZero(HashKeccak256, LEVEL, SORT_MODE);
+    const tree1 = await buildSMTSingleLeaf(HashKeccak256, LEVEL, SORT_MODE, LOG_LEVEL.LOW);
 
     let addrList = [[2, true], [3, true], [3, true]];
 
-    addrList.forEach((addr, pos) => {
-        let leaf0 = tree0.addLeaf(BigInt(addr[0]), addr[1] ? addr[0].toString(16) : tree0.ZERO_LEAF_VALUE());
-        let leaf1 = tree1.addLeaf(BigInt(addr[0]), addr[1] ? addr[0].toString(16) : tree1.ZERO_LEAF_VALUE());
+    for (let pos = 0; pos < addrList.length; ++pos) {
+        let addr = addrList[pos];
+        let leaf0 = await tree0.addLeaf(BigInt(addr[0]), addr[1] ? addr[0].toString(16) : tree0.ZERO_LEAF_VALUE());
+        let leaf1 = await tree1.addLeaf(BigInt(addr[0]), addr[1] ? addr[0].toString(16) : tree1.ZERO_LEAF_VALUE());
 
         console.log(`${pos}. Root after ${(addr[1] ? "adding" : "removing")} leaf ${addr[0]} : ${tree1.ROOT()}`)
         console.log()
@@ -85,14 +86,14 @@ function reproduce() {
 
         if (tree0.ROOT() !== tree1.ROOT())
             throw "Roots did not match!";
-    })
+    }
 }
 
-function mainTest(poseidon: Poseidon | undefined) {
+async function mainTest(poseidon: Poseidon | undefined) {
 
     const hashFn = getHashFn(poseidon);
-    const tree0 = new SMTHashZero(hashFn, LEVEL, SORT_MODE);
-    const tree1 = new SMTSingleLeaf(hashFn, LEVEL, SORT_MODE, LOG_LEVEL.LOW);
+    const tree0 = await buildSMTHashZero(hashFn, LEVEL, SORT_MODE);
+    const tree1 = await buildSMTSingleLeaf(hashFn, LEVEL, SORT_MODE, LOG_LEVEL.LOW);
     const MAX = Number(tree1.upperIndex());
 
     for (let pos = 0; pos < MAX * 10; ++pos) {
@@ -102,8 +103,8 @@ function mainTest(poseidon: Poseidon | undefined) {
         console.log("==================================================================");
         console.log(`${pos}. ${(add_remove ? "Adding" : "Removing")} leaf ${address}`)
 
-        let leaf0 = tree0.addLeaf(BigInt(address), add_remove ? address.toString(16) : tree0.ZERO_LEAF_VALUE())
-        let leaf1 = tree1.addLeaf(BigInt(address), add_remove ? address.toString(16) : tree1.ZERO_LEAF_VALUE())
+        let leaf0 = await tree0.addLeaf(BigInt(address), add_remove ? address.toString(16) : tree0.ZERO_LEAF_VALUE())
+        let leaf1 = await tree1.addLeaf(BigInt(address), add_remove ? address.toString(16) : tree1.ZERO_LEAF_VALUE())
 
         console.log(`${pos}. Root after ${(add_remove ? "adding" : "removing")} leaf ${address} : ${tree1.ROOT()}`)
         console.log();
@@ -118,8 +119,8 @@ function mainTest(poseidon: Poseidon | undefined) {
 
 async function main() {
     let poseidon = await buildPoseidon();
-    mainTest(undefined);
-    mainTest(poseidon);
+    await mainTest(undefined);
+    await mainTest(poseidon);
 
     console.log()
     console.log("All tests succeeded")

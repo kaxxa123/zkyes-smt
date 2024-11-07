@@ -2,7 +2,7 @@ import { ethers } from "ethers";
 import { buildPoseidon, Poseidon } from "circomlibjs";
 import { SMTMemDb, buildSMT } from "circomlibjs";
 
-import { LOG_LEVEL, SMTSingleLeafEx, HashFn } from "zkyes-smt"
+import { LOG_LEVEL, buildSMTSingleLeafEx, HashFn } from "zkyes-smt"
 
 const LEVEL = 5n;
 
@@ -11,11 +11,11 @@ function RandomNum(max: number): number {
 }
 
 function getHashFn(poseidonHash: Poseidon | undefined): HashFn {
-    const HashKeccak256 = (preimage: string) => ethers.keccak256("0x" + preimage).slice(2);
+    const HashKeccak256 = async (preimage: string) => ethers.keccak256("0x" + preimage).slice(2);
     if (poseidonHash === undefined)
         return HashKeccak256;
 
-    const HashPoseidon = (preimage: string) => {
+    const HashPoseidon = async (preimage: string) => {
         // Preimage cannot be empty and must be in 32-byte chunks
         if ((preimage.length == 0) || (preimage.length % 64 != 0))
             throw "Poseidon: A preimage of 32-byte chunks is required.";
@@ -66,7 +66,7 @@ async function mainTest(poseidon: Poseidon) {
     const tree0 = await buildSMT(smtDB, smtDB.root)
 
     const hashFn = getHashFn(poseidon);
-    const tree1 = new SMTSingleLeafEx(hashFn, LEVEL, false, LOG_LEVEL.LOW);
+    const tree1 = await buildSMTSingleLeafEx(hashFn, LEVEL, false, LOG_LEVEL.LOW);
 
     const MAX = Number(tree1.upperIndex());
 
@@ -87,7 +87,7 @@ async function mainTest(poseidon: Poseidon) {
             root0 = Array.from(tree0.root).map(byte => byte.toString(16).padStart(2, '0')).join('');
         }
 
-        let leaf1 = tree1.addLeaf(address, value.toString(16))
+        let leaf1 = await tree1.addLeaf(address, value.toString(16))
 
         console.log(`${pos}. Root after ${(update ? "updating" : "adding")} leaf ${address} : ${tree1.ROOT()}`)
         console.log();
