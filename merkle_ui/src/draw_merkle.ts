@@ -181,7 +181,7 @@ export class TreeDisplay extends MerkleWrapper {
     //      This is the width taken to fit all the leaf nodes of a tree.
     //
     //      buffer - buffer to which the subtree is to be written.
-    private _drawTreeLevel(
+    private async _drawTreeLevel(
         nodeHash: string,
         shortAddr: bigint,
         level: number,
@@ -197,8 +197,8 @@ export class TreeDisplay extends MerkleWrapper {
             if (BigInt(level) < this.LEVELS_TOTAL()) {
                 this._drawNode("   x  ", level, horizIdx, totalwidth, buffer);
 
-                this._drawTreeLevel(nodeHash, shortAddr, level + 1, horizIdx * 2, totalwidth, buffer)
-                this._drawTreeLevel(nodeHash, shortAddr, level + 1, horizIdx * 2 + 1, totalwidth, buffer)
+                await this._drawTreeLevel(nodeHash, shortAddr, level + 1, horizIdx * 2, totalwidth, buffer)
+                await this._drawTreeLevel(nodeHash, shortAddr, level + 1, horizIdx * 2 + 1, totalwidth, buffer)
             }
             else if (shortAddr != BigInt(this._adjustIndex(horizIdx)))
                 this._drawNode("   x  ", level, horizIdx, totalwidth, buffer);
@@ -209,8 +209,8 @@ export class TreeDisplay extends MerkleWrapper {
             this._drawNode("   0  ", level, horizIdx, totalwidth, buffer);
 
             if (level < this.LEVELS_TOTAL()) {
-                this._drawTreeLevel(this.HASH_ZERO_TREE(level + 1), -1n, level + 1, horizIdx * 2, totalwidth, buffer)
-                this._drawTreeLevel(this.HASH_ZERO_TREE(level + 1), -1n, level + 1, horizIdx * 2 + 1, totalwidth, buffer)
+                await this._drawTreeLevel(this.HASH_ZERO_TREE(level + 1), -1n, level + 1, horizIdx * 2, totalwidth, buffer)
+                await this._drawTreeLevel(this.HASH_ZERO_TREE(level + 1), -1n, level + 1, horizIdx * 2 + 1, totalwidth, buffer)
             }
         }
         else {
@@ -218,13 +218,13 @@ export class TreeDisplay extends MerkleWrapper {
 
             let subtree = this.TREE(nodeHash)
             if (subtree?.length === 2) {
-                this._drawTreeLevel(subtree[0], -1n, level + 1, horizIdx * 2, totalwidth, buffer)
-                this._drawTreeLevel(subtree[1], -1n, level + 1, horizIdx * 2 + 1, totalwidth, buffer)
+                await this._drawTreeLevel(subtree[0], -1n, level + 1, horizIdx * 2, totalwidth, buffer)
+                await this._drawTreeLevel(subtree[1], -1n, level + 1, horizIdx * 2 + 1, totalwidth, buffer)
             }
             if (subtree?.length === 3) {
                 let addr = BigInt("0x" + subtree[0])
-                this._drawTreeLevel(this.hashLeaf(subtree), addr, level + 1, horizIdx * 2, totalwidth, buffer)
-                this._drawTreeLevel(this.hashLeaf(subtree), addr, level + 1, horizIdx * 2 + 1, totalwidth, buffer)
+                await this._drawTreeLevel(await this.hashLeaf(subtree), addr, level + 1, horizIdx * 2, totalwidth, buffer)
+                await this._drawTreeLevel(await this.hashLeaf(subtree), addr, level + 1, horizIdx * 2 + 1, totalwidth, buffer)
             }
         }
     }
@@ -240,7 +240,7 @@ export class TreeDisplay extends MerkleWrapper {
     //      may be much bigger than the display. Furthermore if "prettify" 
     //      mode is enabled the text will contain characters to be replaced
     //      for correct display.
-    drawTree(): TreeBox {
+    async drawTree(): Promise<TreeBox> {
 
         const WIDTH = Number((this.upperIndex() + 1n)) * NODE_WIDTH +
             Number(this.upperIndex()) * NODE_HSPACING + NEWLINE_LEN;
@@ -258,7 +258,7 @@ export class TreeDisplay extends MerkleWrapper {
             buffer.write(line, lineCnt * Buffer.byteLength(line), 'utf8');
         }
 
-        this._drawTreeLevel(this.ROOT(), -1n, 0, 0, WIDTH, buffer);
+        await this._drawTreeLevel(this.ROOT(), -1n, 0, 0, WIDTH, buffer);
 
         return {
             text: buffer.toString('utf8'),

@@ -7,21 +7,23 @@ async function main() {
     console.log(config);
     console.log();
 
-    let tree: IMerkle = initTreeByConfig(config, await buildPoseidon());
+    let tree: IMerkle = await initTreeByConfig(config, await buildPoseidon());
     console.log(tree.NAME());
     console.log();
 
-    config.leaves.forEach((leaf) => {
-        let hash = tree.addLeaf(BigInt(leaf.index), leaf.value)
+    for (let pos = 0; pos < config.leaves.length; ++pos) {
+        let leaf = config.leaves[pos];
+        let hash = await tree.addLeaf(BigInt(leaf.index), leaf.value)
         console.log(`Added leaf #${leaf.index}`)
         console.log(`   Value:      ${leaf.value}`)
         console.log(`   Leaf Hash:  ${hash}`)
         console.log(`   Root:       ${tree.ROOT()}`)
         console.log()
-    });
+    }
 
-    config.leaves.forEach((leaf) => {
-        let proof = tree.getProof(BigInt(leaf.index))
+    for (let pos = 0; pos < config.leaves.length; ++pos) {
+        let leaf = config.leaves[pos];
+        let proof = await tree.getProof(BigInt(leaf.index))
 
         console.log()
         console.log(`Proof for leaf ${leaf.index}:`)
@@ -35,7 +37,7 @@ async function main() {
         })
 
         console.log()
-    });
+    }
 }
 
 main().catch((error) => {

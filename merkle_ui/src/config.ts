@@ -7,10 +7,10 @@ import { Poseidon } from "circomlibjs";
 import {
     IMerkle,
     HashFn,
-    SMTNaive,
-    SMTHashZero,
-    SMTSingleLeaf,
-    SMTSingleLeafEx
+    buildSMTNaive,
+    buildSMTHashZero,
+    buildSMTSingleLeaf,
+    buildSMTSingleLeafEx
 } from "zkyes-smt"
 
 export const CONFIG_JSON = "./tree_config.json";
@@ -97,9 +97,9 @@ export function normalizedHashType(hashType: string): string {
 }
 
 export function getHashFn(hashType: string, poseidonHash: Poseidon): HashFn {
-    const HashKeccak256 = (preimage: string) => ethers.keccak256("0x" + preimage).slice(2);
+    const HashKeccak256 = async (preimage: string) => ethers.keccak256("0x" + preimage).slice(2);
 
-    const HashPoseidon = (preimage: string) => {
+    const HashPoseidon = async (preimage: string) => {
         // Preimage cannot be empty and must be in 32-byte chunks
         if ((preimage.length == 0) || (preimage.length % 64 != 0))
             throw "Poseidon: A preimage of 32-byte chunks is required.";
@@ -183,26 +183,26 @@ export async function loadConfigOR(path: string, defConfig: TreeConfig): Promise
     return defConfig;
 }
 
-export function initTreeType(type: string, hashType: string, level: number, sort: boolean, poseidonHash: Poseidon): IMerkle {
+export async function initTreeType(type: string, hashType: string, level: number, sort: boolean, poseidonHash: Poseidon): Promise<IMerkle> {
 
     const hashfn = getHashFn(hashType, poseidonHash);
     const treeType = normalizedTreeType(type);
 
     if (treeType === TREE_TYPE_NAIVE)
-        return new SMTNaive(hashfn, BigInt(level), sort);
+        return await buildSMTNaive(hashfn, BigInt(level), sort);
 
     else if (treeType === TREE_TYPE_H0)
-        return new SMTHashZero(hashfn, BigInt(level), sort);
+        return await buildSMTHashZero(hashfn, BigInt(level), sort);
 
     else if (treeType === TREE_TYPE_SHORT)
-        return new SMTSingleLeaf(hashfn, BigInt(level), sort);
+        return await buildSMTSingleLeaf(hashfn, BigInt(level), sort);
 
     else if (treeType === TREE_TYPE_SHORT_EX)
-        return new SMTSingleLeafEx(hashfn, BigInt(level), sort);
+        return await buildSMTSingleLeafEx(hashfn, BigInt(level), sort);
 
     throw `Unknown tree type ${treeType}`;
 }
 
-export function initTreeByConfig(config: TreeConfig, poseidonHash: Poseidon): IMerkle {
-    return initTreeType(config.type, config.hash, config.level, config.sort_hash, poseidonHash);
+export async function initTreeByConfig(config: TreeConfig, poseidonHash: Poseidon): Promise<IMerkle> {
+    return await initTreeType(config.type, config.hash, config.level, config.sort_hash, poseidonHash);
 }

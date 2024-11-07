@@ -47,12 +47,20 @@ async function main() {
     g_tree_type = normalizedTreeType(json_config.type);
     g_hash_type = normalizedHashType(json_config.hash);
     g_sortHashes = json_config.sort_hash;
-    g_tree = new TreeDisplay(initTreeType(g_tree_type, g_hash_type, json_config.level, g_sortHashes, g_poseidon), PRETTY);
-    json_config.leaves.forEach(leaf => {
-        g_tree.addLeaf(BigInt(leaf.index), leaf.value);
-    })
+    g_tree = new TreeDisplay(
+        await initTreeType(
+            g_tree_type,
+            g_hash_type,
+            json_config.level,
+            g_sortHashes,
+            g_poseidon), PRETTY);
 
-    g_tree_data = g_tree.drawTree()
+    for (let pos = 0; pos < json_config.leaves.length; ++pos) {
+        let leaf = json_config.leaves[pos];
+        await g_tree.addLeaf(BigInt(leaf.index), leaf.value);
+    }
+
+    g_tree_data = await g_tree.drawTree()
     g_view_data = g_tree.viewTree(g_horiz_offset, VIEW_WIDTH, g_tree_data);
 
     if (json_config !== DEFAULT_CONFIG)
@@ -327,11 +335,11 @@ async function main() {
         screen.render();
     }
 
-    const reinitTree = (levels: bigint, sort: boolean) => {
+    const reinitTree = async (levels: bigint, sort: boolean) => {
         g_horiz_offset = 0;
         g_sortHashes = sort;
-        g_tree = new TreeDisplay(initTreeType(g_tree_type, g_hash_type, Number(levels), g_sortHashes, g_poseidon), PRETTY);
-        g_tree_data = g_tree.drawTree()
+        g_tree = new TreeDisplay(await initTreeType(g_tree_type, g_hash_type, Number(levels), g_sortHashes, g_poseidon), PRETTY);
+        g_tree_data = await g_tree.drawTree()
         g_view_data = g_tree.viewTree(g_horiz_offset, VIEW_WIDTH, g_tree_data);
         treeBox.setContent(g_view_data);
         treeInfo.setContent(`Tree reinit!\nType: ${g_tree_type}, Hash: ${g_hash_type}, Levels: ${levels}, Sorted Hashes: ` + (sort ? "Yes" : "No"));
@@ -425,27 +433,26 @@ async function main() {
     });
 
     // Enable hash sorting mode
-    sortHashCheckbox.on('check', () => {
+    sortHashCheckbox.on('check', async () => {
         if (g_sortHashes) return;
-        reinitTree(g_tree.LEVELS_TOTAL(), true);
+        await reinitTree(g_tree.LEVELS_TOTAL(), true);
     });
 
     // Disable hash sorting mode
-    sortHashCheckbox.on('uncheck', () => {
+    sortHashCheckbox.on('uncheck', async () => {
         if (!g_sortHashes) return;
-        reinitTree(g_tree.LEVELS_TOTAL(), false);
+        await reinitTree(g_tree.LEVELS_TOTAL(), false);
     });
 
     // Re-init tree
-    resetButton.on('press', () => {
+    resetButton.on('press', async () => {
         let level = validatedLevel();
         if (level < 0) return;
-
-        reinitTree(BigInt(level), g_sortHashes);
+        await reinitTree(BigInt(level), g_sortHashes);
     });
 
     // Add leaf
-    addButton.on('press', () => {
+    addButton.on('press', async () => {
         let leaf = validatedLeaf();
         if (leaf < 0) return;
 
@@ -458,9 +465,9 @@ async function main() {
         value = g_tree.normalizePreimage(value);
 
         g_horiz_offset = 0;
-        let leafHash = g_tree.addLeaf(BigInt(leaf), value);
+        let leafHash = await g_tree.addLeaf(BigInt(leaf), value);
 
-        g_tree_data = g_tree.drawTree()
+        g_tree_data = await g_tree.drawTree()
         g_view_data = g_tree.viewTree(g_horiz_offset, VIEW_WIDTH, g_tree_data);
         treeBox.setContent(g_view_data);
         treeInfo.setContent(`Added leaf Index: ${leaf}\n` +
@@ -470,13 +477,13 @@ async function main() {
     });
 
     // Reset leaf to empty
-    delButton.on('press', () => {
+    delButton.on('press', async () => {
         let leaf = validatedLeaf();
         if (leaf < 0) return;
 
         g_horiz_offset = 0;
-        let leafHash = g_tree.addLeaf(BigInt(leaf), g_tree.ZERO_LEAF_VALUE())
-        g_tree_data = g_tree.drawTree()
+        let leafHash = await g_tree.addLeaf(BigInt(leaf), g_tree.ZERO_LEAF_VALUE())
+        g_tree_data = await g_tree.drawTree()
         g_view_data = g_tree.viewTree(g_horiz_offset, VIEW_WIDTH, g_tree_data);
         treeBox.setContent(g_view_data);
         treeInfo.setContent(`Removed leaf ${leaf}. ${leafHash}`);
@@ -484,11 +491,11 @@ async function main() {
     });
 
     // Compute proof-of-membership parameters
-    proveButton.on('press', () => {
+    proveButton.on('press', async () => {
         let leaf = validatedLeaf();
         if (leaf < 0) return;
 
-        let proof = g_tree.getProof(BigInt(leaf));
+        let proof = await g_tree.getProof(BigInt(leaf));
         proof = compressPoM(g_tree, proof);
 
         treeInfo.setContent(
