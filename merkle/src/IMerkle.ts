@@ -1,4 +1,4 @@
-export type HashFn = (preimage: string) => string;
+export type HashFn = (preimage: string) => Promise<string>;
 
 export type PoM = {
     // Compression Mask
@@ -19,6 +19,8 @@ export type PoM = {
 };
 
 export interface IMerkle {
+    // Is SMT instance initialized>
+    IS_INIT(): boolean;
 
     // A descriptive name for the tree type.
     NAME(): string;
@@ -80,7 +82,7 @@ export interface IMerkle {
     //
     // Returns
     //      hash(left | right)
-    hash(left: string, right: string): string;
+    hash(left: string, right: string): Promise<string>;
 
     // Get the leaf hash given the leaf data stored within 
     // the tree.
@@ -91,7 +93,7 @@ export interface IMerkle {
     //
     // Returns
     //       Leaf hash.
-    hashLeaf(data: string[]): string;
+    hashLeaf(data: string[]): Promise<string>;
 
     // Check if the input hash is an "all zero" subtree.
     //
@@ -118,7 +120,7 @@ export interface IMerkle {
     //
     // Returns
     //      Hash of added leaf
-    addLeaf(address: bigint, value: string): string;
+    addLeaf(address: bigint, value: string): Promise<string>;
 
     // Get proof-of-membership or non-membership for the 
     // given leaf address
@@ -128,7 +130,7 @@ export interface IMerkle {
     // 
     // Returns
     //      PoM stuct containing all the proof elements.
-    getProof(address: bigint): PoM;
+    getProof(address: bigint): Promise<PoM>;
 };
 
 export enum LOG_LEVEL {

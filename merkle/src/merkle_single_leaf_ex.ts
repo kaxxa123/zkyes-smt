@@ -11,6 +11,9 @@ import { PoM, IMerkle, HashFn, LOG_LEVEL } from "./IMerkle"
 // In this implementation:
 //    Parent = Hash(Hash(Left_Subtree) | Non_Zero_Leaf_Hash)
 export class SMTSingleLeafEx implements IMerkle {
+    // Is instance initialized?
+    private _isInit: boolean;
+
     // Number of tree levels under the root
     private _levels: bigint;
 
@@ -40,6 +43,17 @@ export class SMTSingleLeafEx implements IMerkle {
 
     private _logLevel: LOG_LEVEL;
 
+    constructor() {
+        this._isInit = false;
+        this._hash_func = async (preimage: string) => "";
+        this._logLevel = LOG_LEVEL.NONE;
+        this._levels = 0n;
+        this._sorthash = false;
+        this._tree = new Map();
+        this._root = "";
+        this._reverseTraversal = true;
+    }
+
     // Initilze Sparse Merkle Tree instance.
     //
     // Inputs 
@@ -47,18 +61,19 @@ export class SMTSingleLeafEx implements IMerkle {
     //
     //      sorthash - if true, hash(left, right) will first  
     //      sort the left and right values: 0x<Smallest><Largest>
-    constructor(hashfn: HashFn, lvl: bigint, sorthash: boolean, log: LOG_LEVEL = LOG_LEVEL.NONE) {
+    initialize(hashfn: HashFn, lvl: bigint, sorthash: boolean, log: LOG_LEVEL) {
+        if (this._isInit)
+            throw `Tree already initialized!`;
 
         if ((lvl < 2) || (lvl > 256))
             throw `Tree level out of range ${lvl}!`;
 
+        this._isInit = true;
         this._hash_func = hashfn;
         this._logLevel = log;
         this._levels = lvl;
         this._sorthash = sorthash;
-        this._tree = new Map();
         this._root = this.HASH_ZERO();
-        this._reverseTraversal = true;
     }
 
     // =============================================
@@ -258,7 +273,7 @@ export class SMTSingleLeafEx implements IMerkle {
     //      Array of hashes from root to leaf. Array is truncated 
     //      when tree updates are terminated by a single non-zero 
     //      leaf subtree.
-    private _computeUpdatedNodes(address: bigint, value: string, siblings: string[]): string[] {
+    private async _computeUpdatedNodes(address: bigint, value: string, siblings: string[]): Promise<string[]> {
         let bitmask = this._leafMask();
         let toWrite = [];
 
@@ -271,7 +286,7 @@ export class SMTSingleLeafEx implements IMerkle {
         //Hash leaf as Hash(address | value | 1)
         let hashLevel = (value === this.ZERO_LEAF_VALUE()) ?
             this.HASH_ZERO() :
-            this.hashLeaf([address.toString(16), value, "1"]);
+            await this.hashLeaf([address.toString(16), value, "1"]);
 
         // Push leaf value and hash. Leafs will always be 
         // terminated with the sequence:
@@ -293,8 +308,8 @@ export class SMTSingleLeafEx implements IMerkle {
             // 1 =>    Read Left, Change Right
             // 0 =>  Change Left,   Read Right
             hashLevel = (address & bitmask) ?
-                this.hash(siblings[pos - 1], hashLevel) :
-                this.hash(hashLevel, siblings[pos - 1]);
+                await this.hash(siblings[pos - 1], hashLevel) :
+                await this.hash(hashLevel, siblings[pos - 1]);
 
             // next bit
             bitmask = this._traverseFromLeaf(bitmask, 1n);
@@ -394,6 +409,10 @@ export class SMTSingleLeafEx implements IMerkle {
 
     // =============================================
     //    IMerkle public interface
+    IS_INIT(): boolean {
+        return this._isInit;
+    }
+
     NAME(): string {
         return "Single Leaf Subtree optimized Sparse Merkle Tree. Leaf hash used as sub-tree hash. LSB-to-MSB.";
     }
@@ -423,10 +442,16 @@ export class SMTSingleLeafEx implements IMerkle {
     }
 
     ROOT(): string {
+        if (!this._isInit)
+            throw `Tree NOT initialized!`;
+
         return this._root;
     }
 
     TREE(parent: string): string[] | undefined {
+        if (!this._isInit)
+            throw `Tree NOT initialized!`;
+
         return this._tree.get(parent);
     }
 
@@ -443,7 +468,10 @@ export class SMTSingleLeafEx implements IMerkle {
         return input.padStart(64 + input.length - (input.length % 64), '0')
     }
 
-    hash(left: string, right: string): string {
+    async hash(left: string, right: string): Promise<string> {
+        if (!this._isInit)
+            throw `Tree NOT initialized!`;
+
         if (this._sorthash) {
             [left, right] = this._sortHashes(left, right);
         }
@@ -453,10 +481,13 @@ export class SMTSingleLeafEx implements IMerkle {
         // Will always generate a 256-bit hash with leading zeros (if needed)
         return (preimage == this.ZERO_LEAF_VALUE())
             ? this.HASH_ZERO()
-            : this._hash_func(preimage);
+            : await this._hash_func(preimage);
     }
 
-    hashLeaf(data: string[]): string {
+    async hashLeaf(data: string[]): Promise<string> {
+        if (!this._isInit)
+            throw `Tree NOT initialized!`;
+
         if (data.length !== 3)
             throw "Unexpected leaf data length";
 
@@ -467,7 +498,7 @@ export class SMTSingleLeafEx implements IMerkle {
         // Will always generate a 256-bit hash with leading zeros (if needed)
         return (data[1] == this.ZERO_LEAF_VALUE())
             ? this.HASH_ZERO()
-            : this._hash_func(preimage);
+            : await this._hash_func(preimage);
     }
 
     isZeroTree(hash: string, level: number): boolean {
@@ -482,15 +513,21 @@ export class SMTSingleLeafEx implements IMerkle {
         return (2n ** this.LEVELS_TOTAL()) - 1n;
     }
 
-    addLeaf(address: bigint, value: string): string {
+    async addLeaf(address: bigint, value: string): Promise<string> {
+        if (!this._isInit)
+            throw `Tree NOT initialized!`;
+
         let [siblings, _, aux] = this._extractSiblings(address, true);
-        let newNodes = this._computeUpdatedNodes(address, value, siblings);
+        let newNodes = await this._computeUpdatedNodes(address, value, siblings);
         this._addLeafNodes(address, newNodes, siblings, aux);
 
         return newNodes[newNodes.length - 2];
     }
 
-    getProof(address: bigint): PoM {
+    async getProof(address: bigint): Promise<PoM> {
+        if (!this._isInit)
+            throw `Tree NOT initialized!`;
+
         let [siblings, leaf, _] = this._extractSiblings(address);
 
         // Siblings array is truncated leaving out 
@@ -502,4 +539,15 @@ export class SMTSingleLeafEx implements IMerkle {
 
         return { compress: undefined, root: this.ROOT(), leaf, siblings };
     }
+}
+
+export async function buildSMTSingleLeafEx(
+    hashfn: HashFn,
+    lvl: bigint,
+    sorthash: boolean,
+    log: LOG_LEVEL = LOG_LEVEL.NONE): Promise<SMTSingleLeafEx> {
+
+    let smt = new SMTSingleLeafEx();
+    smt.initialize(hashfn, lvl, sorthash, log);
+    return smt;
 }

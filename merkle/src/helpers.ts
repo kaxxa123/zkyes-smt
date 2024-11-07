@@ -10,6 +10,10 @@ export class MerkleWrapper implements IMerkle {
         this._tree = tree;
     }
 
+    IS_INIT(): boolean {
+        return this._tree.IS_INIT();
+    }
+
     NAME(): string {
         return this._tree.NAME();
     }
@@ -50,12 +54,12 @@ export class MerkleWrapper implements IMerkle {
         return this._tree.normalizePreimage(input);
     }
 
-    hash(left: string, right: string): string {
-        return this._tree.hash(left, right);
+    async hash(left: string, right: string): Promise<string> {
+        return await this._tree.hash(left, right);
     }
 
-    hashLeaf(data: string[]): string {
-        return this._tree.hashLeaf(data);
+    async hashLeaf(data: string[]): Promise<string> {
+        return await this._tree.hashLeaf(data);
     }
 
     isZeroTree(hash: string, level: number): boolean {
@@ -70,12 +74,12 @@ export class MerkleWrapper implements IMerkle {
         return this._tree.upperIndex();
     }
 
-    addLeaf(address: bigint, value: string): string {
-        return this._tree.addLeaf(address, value);
+    async addLeaf(address: bigint, value: string): Promise<string> {
+        return await this._tree.addLeaf(address, value);
     }
 
-    getProof(address: bigint): PoM {
-        return this._tree.getProof(address);
+    async getProof(address: bigint): Promise<PoM> {
+        return await this._tree.getProof(address);
     }
 }
 

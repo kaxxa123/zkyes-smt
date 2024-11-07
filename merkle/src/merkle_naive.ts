@@ -3,6 +3,9 @@ import { PoM, IMerkle, HashFn } from "./IMerkle"
 // A Sparse Merkle Tree allowing to generate proofs-of-membership
 // and proofs-of-non-membership.
 export class SMTNaive implements IMerkle {
+    // Is instance initialized?
+    private _isInit: boolean;
+
     // Number of tree levels under the root
     private _levels: bigint;
 
@@ -25,6 +28,17 @@ export class SMTNaive implements IMerkle {
     // Function for computing hashes
     private _hash_func: HashFn;
 
+    constructor() {
+        this._isInit = false;
+        this._hash_func = async (preimage: string) => "";
+        this._levels = 0n;
+        this._sorthash = false;
+        this._hashZero = ""
+        this._hashZeroTree = [];
+        this._tree = new Map();
+        this._root = "";
+    }
+
     // Initilze Sparse Merkle Tree instance.
     //
     // Inputs 
@@ -32,17 +46,19 @@ export class SMTNaive implements IMerkle {
     //
     //      sorthash - if true, hash(left, right) will first  
     //      sort the left and right values smallest first (left).
-    constructor(hashfn: HashFn, lvl: bigint, sorthash: boolean) {
+    async initialize(hashfn: HashFn, lvl: bigint, sorthash: boolean) {
+        if (this._isInit)
+            throw `Tree already initialized!`;
 
         if ((lvl < 2) || (lvl > 256))
             throw `Tree level out of range ${lvl}!`;
 
+        this._isInit = true;
         this._hash_func = hashfn;
         this._levels = lvl;
         this._sorthash = sorthash;
-        this._hashZero = this.hash(this.ZERO_LEAF_VALUE());
-        this._hashZeroTree = this._computeZeroTree();
-        this._tree = new Map();
+        this._hashZero = await this.hash(this.ZERO_LEAF_VALUE());
+        this._hashZeroTree = await this._computeZeroTree();
         this._root = this._hashZeroTree[0];
     }
 
@@ -79,14 +95,14 @@ export class SMTNaive implements IMerkle {
     //      starting from a zero root and ending with a
     //      zero leaf. Returned array will be 
     //      (LEVELS_TOTAL+1) long.
-    private _computeZeroTree(): string[] {
+    private async _computeZeroTree(): Promise<string[]> {
         const cache = []
         let lastHash = this.HASH_ZERO();
 
         // Zero Leaf
         cache.push(lastHash)
         for (let level = 0; level < this.LEVELS_TOTAL(); ++level) {
-            lastHash = this.hash(lastHash, lastHash)
+            lastHash = await this.hash(lastHash, lastHash)
             cache.push(lastHash)
         }
 
@@ -166,7 +182,7 @@ export class SMTNaive implements IMerkle {
     //
     // Returns
     //      Array of hashes from root to leaf.
-    private _computeUpdatedNodes(address: bigint, value: string, siblings: string[]): string[] {
+    private async _computeUpdatedNodes(address: bigint, value: string, siblings: string[]): Promise<string[]> {
         let bitmask = 1n;
         let toWrite = [];
 
@@ -177,7 +193,7 @@ export class SMTNaive implements IMerkle {
             throw "Invalid leaf address!";
 
         //Hash leaf value...
-        let newValue = this.hash(value)
+        let newValue = await this.hash(value)
 
         for (let pos = Number(this.LEVELS_TOTAL()); pos > 0; --pos) {
             toWrite.push(newValue)
@@ -185,8 +201,8 @@ export class SMTNaive implements IMerkle {
             // 1 =>    Read Left, Change Right
             // 0 =>  Change Left,   Read Right
             newValue = (address & bitmask) ?
-                this.hash(siblings[pos - 1], newValue)
-                : this.hash(newValue, siblings[pos - 1]);
+                await this.hash(siblings[pos - 1], newValue)
+                : await this.hash(newValue, siblings[pos - 1]);
 
             // next bit
             bitmask <<= 1n;
@@ -232,6 +248,10 @@ export class SMTNaive implements IMerkle {
 
     // =============================================
     //    IMerkle public interface
+    IS_INIT(): boolean {
+        return this._isInit;
+    }
+
     NAME(): string {
         return "Naive Sparse Merkle Tree";
     }
@@ -253,18 +273,30 @@ export class SMTNaive implements IMerkle {
     }
 
     HASH_ZERO(): string {
+        if (!this._isInit)
+            throw `Tree NOT initialized!`;
+
         return this._hashZero;
     }
 
     HASH_ZERO_TREE(idx: number): string {
+        if (!this._isInit)
+            throw `Tree NOT initialized!`;
+
         return this._hashZeroTree[idx];
     }
 
     ROOT(): string {
+        if (!this._isInit)
+            throw `Tree NOT initialized!`;
+
         return this._root;
     }
 
     TREE(parent: string): string[] | undefined {
+        if (!this._isInit)
+            throw `Tree NOT initialized!`;
+
         return this._tree.get(parent);
     }
 
@@ -281,20 +313,26 @@ export class SMTNaive implements IMerkle {
         return input.padStart(64 + input.length - (input.length % 64), '0')
     }
 
-    hash(left: string, right: string = ""): string {
+    async hash(left: string, right: string = ""): Promise<string> {
+        if (!this._isInit)
+            throw `Tree NOT initialized!`;
+
         if (this._sorthash) {
             [left, right] = this._sortHashes(left, right);
         }
 
         // Will always generate a 256-bit hash with leading zeros (if needed)
-        return this._hash_func(this.normalizePreimage(left) + this.normalizePreimage(right));
+        return await this._hash_func(this.normalizePreimage(left) + this.normalizePreimage(right));
     }
 
-    hashLeaf(data: string[]): string {
+    hashLeaf(data: string[]): Promise<string> {
         throw "Leaf data encoding not supported!"
     }
 
     isZeroTree(hash: string, level: number): boolean {
+        if (!this._isInit)
+            throw `Tree NOT initialized!`;
+
         return (this._hashZeroTree[level] == hash);
     }
 
@@ -306,16 +344,28 @@ export class SMTNaive implements IMerkle {
         return (2n ** this.LEVELS_TOTAL()) - 1n;
     }
 
-    addLeaf(address: bigint, value: string): string {
+    async addLeaf(address: bigint, value: string): Promise<string> {
+        if (!this._isInit)
+            throw `Tree NOT initialized!`;
+
         let [siblings,] = this._extractSiblings(address, true);
-        let newNodes = this._computeUpdatedNodes(address, value, siblings);
+        let newNodes = await this._computeUpdatedNodes(address, value, siblings);
         this._addLeafNodes(address, newNodes, siblings);
 
         return newNodes[newNodes.length - 1];
     }
 
-    getProof(address: bigint): PoM {
+    async getProof(address: bigint): Promise<PoM> {
+        if (!this._isInit)
+            throw `Tree NOT initialized!`;
+
         let [siblings, leaf] = this._extractSiblings(address);
         return { compress: undefined, root: this.ROOT(), leaf, siblings };
     }
+}
+
+export async function buildSMTNaive(hashfn: HashFn, lvl: bigint, sorthash: boolean): Promise<SMTNaive> {
+    let smt = new SMTNaive();
+    await smt.initialize(hashfn, lvl, sorthash);
+    return smt;
 }

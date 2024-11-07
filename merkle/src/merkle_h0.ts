@@ -3,6 +3,9 @@ import { PoM, IMerkle, HashFn } from "./IMerkle"
 // A Sparse Merkle Tree with optimization
 // Hash(zero | Zero) = Zero
 export class SMTHashZero implements IMerkle {
+    // Is instance initialized?
+    private _isInit: boolean;
+
     // Number of tree levels under the root
     private _levels: bigint;
 
@@ -18,6 +21,15 @@ export class SMTHashZero implements IMerkle {
     // Function for computing hashes
     private _hash_func: HashFn;
 
+    constructor() {
+        this._isInit = false;
+        this._hash_func = async (preimage: string) => "";
+        this._levels = 0n;
+        this._sorthash = false;
+        this._tree = new Map();
+        this._root = "";
+    }
+
     // Initilze Sparse Merkle Tree instance.
     //
     // Inputs 
@@ -27,15 +39,17 @@ export class SMTHashZero implements IMerkle {
     //
     //      sorthash - if true, hash(left, right) will first  
     //      sort the left and right values smallest first (left).
-    constructor(hashfn: HashFn, lvl: bigint, sorthash: boolean) {
+    initialize(hashfn: HashFn, lvl: bigint, sorthash: boolean) {
+        if (this._isInit)
+            throw `Tree already initialized!`;
 
         if ((lvl < 2) || (lvl > 256))
             throw `Tree level out of range ${lvl}!`;
 
+        this._isInit = true;
         this._hash_func = hashfn;
         this._levels = lvl;
         this._sorthash = sorthash;
-        this._tree = new Map();
         this._root = this.HASH_ZERO();
     }
 
@@ -137,7 +151,7 @@ export class SMTHashZero implements IMerkle {
     //
     // Returns
     //      Array of hashes from root to leaf.
-    private _computeUpdatedNodes(address: bigint, value: string, siblings: string[]): string[] {
+    private async _computeUpdatedNodes(address: bigint, value: string, siblings: string[]): Promise<string[]> {
         let bitmask = 1n;
         let toWrite = [];
 
@@ -148,7 +162,7 @@ export class SMTHashZero implements IMerkle {
             throw "Invalid leaf address!";
 
         //Hash leaf value...
-        let newValue = this.hash(value)
+        let newValue = await this.hash(value)
 
         for (let pos = Number(this.LEVELS_TOTAL()); pos > 0; --pos) {
             toWrite.push(newValue)
@@ -156,8 +170,8 @@ export class SMTHashZero implements IMerkle {
             // 1 =>    Read Left, Change Right
             // 0 =>  Change Left,   Read Right
             newValue = (address & bitmask) ?
-                this.hash(siblings[pos - 1], newValue)
-                : this.hash(newValue, siblings[pos - 1]);
+                await this.hash(siblings[pos - 1], newValue)
+                : await this.hash(newValue, siblings[pos - 1]);
 
             // next bit
             bitmask <<= 1n;
@@ -203,6 +217,10 @@ export class SMTHashZero implements IMerkle {
 
     // =============================================
     //    IMerkle public interface
+    IS_INIT(): boolean {
+        return this._isInit;
+    }
+
     NAME(): string {
         return "H(0|0)=0 optimized Sparse Merkle Tree";
     }
@@ -232,10 +250,16 @@ export class SMTHashZero implements IMerkle {
     }
 
     ROOT(): string {
+        if (!this._isInit)
+            throw `Tree NOT initialized!`;
+
         return this._root;
     }
 
     TREE(parent: string): string[] | undefined {
+        if (!this._isInit)
+            throw `Tree NOT initialized!`;
+
         return this._tree.get(parent);
     }
 
@@ -252,7 +276,10 @@ export class SMTHashZero implements IMerkle {
         return input.padStart(64 + input.length - (input.length % 64), '0')
     }
 
-    hash(left: string, right: string = ""): string {
+    async hash(left: string, right: string = ""): Promise<string> {
+        if (!this._isInit)
+            throw `Tree NOT initialized!`;
+
         if (this._sorthash) {
             [left, right] = this._sortHashes(left, right);
         }
@@ -262,10 +289,10 @@ export class SMTHashZero implements IMerkle {
         // Will always generate a 256-bit hash with leading zeros (if needed)
         return (preimage == this.ZERO_LEAF_VALUE())
             ? this.HASH_ZERO()
-            : this._hash_func(preimage);
+            : await this._hash_func(preimage);
     }
 
-    hashLeaf(data: string[]): string {
+    hashLeaf(data: string[]): Promise<string> {
         throw "Leaf data encoding not supported!"
     }
 
@@ -281,16 +308,28 @@ export class SMTHashZero implements IMerkle {
         return (2n ** this.LEVELS_TOTAL()) - 1n;
     }
 
-    addLeaf(address: bigint, value: string): string {
+    async addLeaf(address: bigint, value: string): Promise<string> {
+        if (!this._isInit)
+            throw `Tree NOT initialized!`;
+
         let [siblings,] = this._extractSiblings(address, true);
-        let newNodes = this._computeUpdatedNodes(address, value, siblings);
+        let newNodes = await this._computeUpdatedNodes(address, value, siblings);
         this._addLeafNodes(address, newNodes, siblings);
 
         return newNodes[newNodes.length - 1];
     }
 
-    getProof(address: bigint): PoM {
+    async getProof(address: bigint): Promise<PoM> {
+        if (!this._isInit)
+            throw `Tree NOT initialized!`;
+
         let [siblings, leaf] = this._extractSiblings(address);
         return { compress: undefined, root: this.ROOT(), leaf, siblings };
     }
+}
+
+export async function buildSMTHashZero(hashfn: HashFn, lvl: bigint, sorthash: boolean): Promise<SMTHashZero> {
+    let smt = new SMTHashZero();
+    smt.initialize(hashfn, lvl, sorthash);
+    return smt;
 }
