@@ -2,7 +2,7 @@ import * as fs from "fs";
 import * as util from "util";
 
 import { ethers } from "ethers";
-import { Poseidon } from "circomlibjs";
+import { Poseidon as SmartPoseidon } from "@iden3/js-crypto";
 
 import {
     IMerkle,
@@ -96,50 +96,35 @@ export function normalizedHashType(hashType: string): string {
     throw `Unknown hash type ${hashType}`;
 }
 
-export function getHashFn(hashType: string, poseidonHash: Poseidon): HashFn {
+export function normalize32Bytes(input: string): string {
+    if (input.length === 0)
+        return "";
+
+    if (input.length % 64 == 0)
+        return input;
+
+    // Add enough zeros to make the hash a multiple of 32-bytes
+    return input.padStart(64 + input.length - (input.length % 64), '0')
+}
+
+export function getHashFn(hashType: string): HashFn {
     const HashKeccak256 = async (preimage: string) => ethers.keccak256("0x" + preimage).slice(2);
 
     const HashPoseidon = async (preimage: string) => {
-        // Preimage cannot be empty and must be in 32-byte chunks
-        if ((preimage.length == 0) || (preimage.length % 64 != 0))
-            throw "Poseidon: A preimage of 32-byte chunks is required.";
+        if ((preimage.length === 0) || (preimage.length % 64 !== 0))
+            throw "preimage length must be multiple of 32-bytes";
 
-        // Hash uint256 values
-        const hashU256 = (): Uint8Array => {
-            //break pre-image in 32-byte chunks
-            const chunks: bigint[] = [];
-            for (let pos = 0; pos < preimage.length;) {
-                chunks.push(BigInt("0x" + preimage.slice(pos, pos + 64)))
-                pos += 64;
-            }
-
-            return poseidonHash(chunks);
+        const chunks: bigint[] = [];
+        for (let pos = 0; pos < preimage.length;) {
+            chunks.push(BigInt("0x" + preimage.slice(pos, pos + 64)))
+            pos += 64;
         }
 
-        // Hash 32-byte blobs
-        const hashBytes = (): Uint8Array => {
-            //break pre-image in 32-byte chunks
-            const chunks: Uint8Array[] = [];
-            for (let pos = 0; pos < preimage.length;) {
-                const buffer = Buffer.from(preimage.slice(pos, pos + 64), 'hex');
-                chunks.push(new Uint8Array(buffer))
-                pos += 64;
-            }
+        // The @iden3/js-crypto (unlike circomlibjs) generates the same 
+        // hash as the EVM Poseidon libraries.
+        let hash = SmartPoseidon.hash(chunks);
 
-            return poseidonHash(chunks)
-        }
-
-        // SMTSingleLeafEx is special in that leaf hashes are computed
-        // over uint256 values rather than 32-byte blobs. We identify this
-        // special case from the preimage size.
-        let hashOut = (preimage.length === 64 * 3) ? hashU256() : hashBytes();
-        if (hashOut.length != 32)
-            throw `Poseidon Hash unexpected length: ${hashOut.length}`;
-
-        // Encode byte array into a hex string
-        return Array.from(hashOut)
-            .map(byte => byte.toString(16).padStart(2, '0'))
-            .join('');
+        return normalize32Bytes(hash.toString(16));
     }
 
     hashType = normalizedHashType(hashType)
@@ -183,9 +168,9 @@ export async function loadConfigOR(path: string, defConfig: TreeConfig): Promise
     return defConfig;
 }
 
-export async function initTreeType(type: string, hashType: string, level: number, sort: boolean, poseidonHash: Poseidon): Promise<IMerkle> {
+export async function initTreeType(type: string, hashType: string, level: number, sort: boolean): Promise<IMerkle> {
 
-    const hashfn = getHashFn(hashType, poseidonHash);
+    const hashfn = getHashFn(hashType);
     const treeType = normalizedTreeType(type);
 
     if (treeType === TREE_TYPE_NAIVE)
@@ -203,6 +188,6 @@ export async function initTreeType(type: string, hashType: string, level: number
     throw `Unknown tree type ${treeType}`;
 }
 
-export async function initTreeByConfig(config: TreeConfig, poseidonHash: Poseidon): Promise<IMerkle> {
-    return await initTreeType(config.type, config.hash, config.level, config.sort_hash, poseidonHash);
+export async function initTreeByConfig(config: TreeConfig): Promise<IMerkle> {
+    return await initTreeType(config.type, config.hash, config.level, config.sort_hash);
 }

@@ -1,5 +1,4 @@
 import blessed from 'blessed';
-import { buildPoseidon, Poseidon } from "circomlibjs";
 import { TreeDisplay, TreeBox } from './draw_merkle'
 import { compressPoM } from "zkyes-smt"
 import {
@@ -34,14 +33,12 @@ let g_tree: TreeDisplay;
 let g_tree_data: TreeBox;
 let g_view_data: string;
 let g_initial_info: string;
-let g_poseidon: Poseidon;
 
 async function main() {
     let json_config = await loadConfigOR(CONFIG_JSON, DEFAULT_CONFIG);
     if ((json_config.level < 2) || (json_config.level > 10))
         json_config = DEFAULT_CONFIG;
 
-    g_poseidon = await buildPoseidon()
     g_control_top = 1;
     g_horiz_offset = 0;
     g_tree_type = normalizedTreeType(json_config.type);
@@ -52,8 +49,7 @@ async function main() {
             g_tree_type,
             g_hash_type,
             json_config.level,
-            g_sortHashes,
-            g_poseidon), PRETTY);
+            g_sortHashes), PRETTY);
 
     for (let pos = 0; pos < json_config.leaves.length; ++pos) {
         let leaf = json_config.leaves[pos];
@@ -338,7 +334,7 @@ async function main() {
     const reinitTree = async (levels: bigint, sort: boolean) => {
         g_horiz_offset = 0;
         g_sortHashes = sort;
-        g_tree = new TreeDisplay(await initTreeType(g_tree_type, g_hash_type, Number(levels), g_sortHashes, g_poseidon), PRETTY);
+        g_tree = new TreeDisplay(await initTreeType(g_tree_type, g_hash_type, Number(levels), g_sortHashes), PRETTY);
         g_tree_data = await g_tree.drawTree()
         g_view_data = g_tree.viewTree(g_horiz_offset, VIEW_WIDTH, g_tree_data);
         treeBox.setContent(g_view_data);
