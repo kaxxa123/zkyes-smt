@@ -1,5 +1,6 @@
 import { ethers } from "ethers";
 import { buildPoseidon, Poseidon } from "circomlibjs";
+import { Poseidon as SmartPoseidon } from "@iden3/js-crypto";
 import { LOG_LEVEL, IMerkle, buildSMTSingleLeafEx, HashFn } from "zkyes-smt"
 
 const LEVEL = 4n;
@@ -11,10 +12,42 @@ type TreeOp = {
     root: string
 }
 
-function getHashFn(poseidonHash: Poseidon | undefined): HashFn {
+enum HASH_MODE {
+    Keccak256,
+    Poseidon,           // Circomlibjs Poseidon
+    SmartPoseidon,      // JS-crypto Poseidon
+}
+
+function normalize32Bytes(input: string): string {
+    if (input.length === 0)
+        return "";
+
+    if (input.length % 64 == 0)
+        return input;
+
+    // Add enough zeros to make the hash a multiple of 32-bytes
+    return input.padStart(64 + input.length - (input.length % 64), '0')
+}
+
+function getHashFn(hashType: HASH_MODE, poseidonHash: Poseidon): HashFn {
     const HashKeccak256 = async (preimage: string) => ethers.keccak256("0x" + preimage).slice(2);
-    if (poseidonHash === undefined)
-        return HashKeccak256;
+
+    const HashSmartPoseidon = async (preimage: string) => {
+        if ((preimage.length === 0) || (preimage.length % 64 !== 0))
+            throw "preimage length must be multiple of 32-bytes";
+
+        const chunks: bigint[] = [];
+        for (let pos = 0; pos < preimage.length;) {
+            chunks.push(BigInt("0x" + preimage.slice(pos, pos + 64)))
+            pos += 64;
+        }
+
+        // The @iden3/js-crypto (unlike circomlibjs) generates the same 
+        // hash as the EVM Poseidon libraries.
+        let hash = SmartPoseidon.hash(chunks);
+
+        return normalize32Bytes(hash.toString(16));
+    }
 
     const HashPoseidon = async (preimage: string) => {
         // Preimage cannot be empty and must be in 32-byte chunks
@@ -58,7 +91,17 @@ function getHashFn(poseidonHash: Poseidon | undefined): HashFn {
             .map(byte => byte.toString(16).padStart(2, '0'))
             .join('');
     }
-    return HashPoseidon;
+
+    if (hashType === HASH_MODE.Keccak256)
+        return HashKeccak256;
+
+    else if (hashType === HASH_MODE.SmartPoseidon)
+        return HashSmartPoseidon;
+
+    else if (hashType === HASH_MODE.Poseidon)
+        return HashPoseidon;
+
+    throw `Unknown hash type ${hashType}`;
 }
 
 async function testTree(tree: IMerkle, treeOpList: TreeOp[]) {
@@ -79,7 +122,7 @@ async function testTree(tree: IMerkle, treeOpList: TreeOp[]) {
 }
 
 async function testKeccak256() {
-    const tree = await buildSMTSingleLeafEx(getHashFn(undefined), LEVEL, false, LOG_LEVEL.HIGH);
+    const tree = await buildSMTSingleLeafEx(getHashFn(HASH_MODE.Keccak256, await buildPoseidon()), LEVEL, false, LOG_LEVEL.HIGH);
 
     let treeOpList = [
         { index: 2, value: 2, leaf: "0073d82a0d9fd31516bcedd1585b7ad7fd372b24932440dfa5bc139ff61f78c1", root: "0073d82a0d9fd31516bcedd1585b7ad7fd372b24932440dfa5bc139ff61f78c1" },
@@ -92,7 +135,7 @@ async function testKeccak256() {
 }
 
 async function testPoseidon() {
-    const tree = await buildSMTSingleLeafEx(getHashFn(await buildPoseidon()), LEVEL, false, LOG_LEVEL.HIGH);
+    const tree = await buildSMTSingleLeafEx(getHashFn(HASH_MODE.Poseidon, await buildPoseidon()), LEVEL, false, LOG_LEVEL.HIGH);
 
     let treeOpList = [
         { index: 2, value: 2, leaf: "65b161eb36c1413237d4f582b76c6089245f184c9ab57bd938ba79a33cf27524", root: "65b161eb36c1413237d4f582b76c6089245f184c9ab57bd938ba79a33cf27524" },
@@ -104,9 +147,23 @@ async function testPoseidon() {
     await testTree(tree, treeOpList);
 }
 
+async function testSmartPoseidon() {
+    const tree = await buildSMTSingleLeafEx(getHashFn(HASH_MODE.SmartPoseidon, await buildPoseidon()), LEVEL, false, LOG_LEVEL.HIGH);
+
+    let treeOpList = [
+        { index: 2, value: 2, leaf: "01e0fcc47d05ea7e91fc579b80d16f25f2cb63b21503f998b12b6ca9ac2d008f", root: "01e0fcc47d05ea7e91fc579b80d16f25f2cb63b21503f998b12b6ca9ac2d008f" },
+        { index: 10, value: 10, leaf: "113842d0d1c21d02baf98d1ddbf9a88e6c2a8e2aaf48ee1e35659f7de53da5f0", root: "246a5a87db10a1e21b13c20296593e7a5d1ef183e3add8abfb0eebedd9812cce" },
+        { index: 8, value: 0x33, leaf: "0c697057ff1c1debce305b92709a931195ff4ab588f6e388935e5acc2a29d6ce", root: "2ba4e405579827558dfc570f8e4328dbda2e8de4489096b675ba94d1e5a65e25" },
+        { index: 13, value: 13, leaf: "0c7bf7f82661e130bb34ac997e1900c22fc20f637179ed9a7e7563e47848923c", root: "250f6c0b83f3a458bcaf8739aedaca68ce05ee88ac99442c90b736f6c24dfbbf" },
+        { index: 5, value: 0x55, leaf: "16dcf8572764648602a61877d41ad63b6861b4e72364c6306e862953e5fbbfb6", root: "1d86bee71d6c41aa28850bb8a0214903721a726ae78215743b3602561ec5d4cd" }];
+
+    await testTree(tree, treeOpList);
+}
+
 async function main() {
     await testKeccak256();
     await testPoseidon();
+    await testSmartPoseidon();
 
     console.log()
     console.log("All tests succeeded")

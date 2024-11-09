@@ -1,5 +1,6 @@
 import { ethers } from "ethers";
 import { buildPoseidon, Poseidon } from "circomlibjs";
+import { Poseidon as SmartPoseidon } from "@iden3/js-crypto";
 import { buildSMTNaive, buildSMTHashZero, buildSMTSingleLeaf, buildSMTSingleLeafEx } from "zkyes-smt"
 import { compressPoM, decompressPoM, PoM, IMerkle, HashFn } from "zkyes-smt"
 
@@ -81,10 +82,42 @@ async function fuzzTest(tree: IMerkle, repetitions: number | undefined = undefin
     }
 }
 
-function getHashFn(poseidonHash: Poseidon | undefined): HashFn {
+enum HASH_MODE {
+    Keccak256,
+    Poseidon,           // Circomlibjs Poseidon
+    SmartPoseidon,      // JS-crypto Poseidon
+}
+
+function normalize32Bytes(input: string): string {
+    if (input.length === 0)
+        return "";
+
+    if (input.length % 64 == 0)
+        return input;
+
+    // Add enough zeros to make the hash a multiple of 32-bytes
+    return input.padStart(64 + input.length - (input.length % 64), '0')
+}
+
+function getHashFn(hashType: HASH_MODE, poseidonHash: Poseidon): HashFn {
     const HashKeccak256 = async (preimage: string) => ethers.keccak256("0x" + preimage).slice(2);
-    if (poseidonHash === undefined)
-        return HashKeccak256;
+
+    const HashSmartPoseidon = async (preimage: string) => {
+        if ((preimage.length === 0) || (preimage.length % 64 !== 0))
+            throw "preimage length must be multiple of 32-bytes";
+
+        const chunks: bigint[] = [];
+        for (let pos = 0; pos < preimage.length;) {
+            chunks.push(BigInt("0x" + preimage.slice(pos, pos + 64)))
+            pos += 64;
+        }
+
+        // The @iden3/js-crypto (unlike circomlibjs) generates the same 
+        // hash as the EVM Poseidon libraries.
+        let hash = SmartPoseidon.hash(chunks);
+
+        return normalize32Bytes(hash.toString(16));
+    }
 
     const HashPoseidon = async (preimage: string) => {
         // Preimage cannot be empty and must be in 32-byte chunks
@@ -128,12 +161,22 @@ function getHashFn(poseidonHash: Poseidon | undefined): HashFn {
             .map(byte => byte.toString(16).padStart(2, '0'))
             .join('');
     }
-    return HashPoseidon;
+
+    if (hashType === HASH_MODE.Keccak256)
+        return HashKeccak256;
+
+    else if (hashType === HASH_MODE.SmartPoseidon)
+        return HashSmartPoseidon;
+
+    else if (hashType === HASH_MODE.Poseidon)
+        return HashPoseidon;
+
+    throw `Unknown hash type ${hashType}`;
 }
 
-async function mainTest(short: boolean, poseidon: Poseidon | undefined) {
+async function mainTest(short: boolean, hashType: HASH_MODE) {
 
-    let hashFn = getHashFn(poseidon);
+    let hashFn = getHashFn(hashType, await buildPoseidon());
 
     await fuzzTest(await buildSMTNaive(hashFn, LEVEL, SORT_MODE), short ? 10 : undefined);
     console.log("Completed SMTNaive test")
@@ -149,11 +192,12 @@ async function mainTest(short: boolean, poseidon: Poseidon | undefined) {
 }
 
 async function main() {
-    let poseidon = await buildPoseidon();
-    await mainTest(false, undefined);
-    await mainTest(true, undefined);
-    await mainTest(false, poseidon);
-    await mainTest(true, poseidon);
+    await mainTest(false, HASH_MODE.Keccak256);
+    await mainTest(true, HASH_MODE.Keccak256);
+    await mainTest(false, HASH_MODE.Poseidon);
+    await mainTest(true, HASH_MODE.Poseidon);
+    await mainTest(false, HASH_MODE.SmartPoseidon);
+    await mainTest(true, HASH_MODE.SmartPoseidon);
 
     console.log()
     console.log("All tests succeeded")
