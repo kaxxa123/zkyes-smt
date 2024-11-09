@@ -1,9 +1,16 @@
 # iden3 Poseidon
 
-## JS Poseidon Hashing
-Using Poseidon hashing requires awareness of how this is implemented in iden3.
+## @iden3/js-crypto Poseidon Hashing
+Iden3 has two implementatinos for Poseidon hashes in each of these libraries `@iden3/js-crypto` and `circomlibjs`.
 
-The JS, Poseidon functions are implemented in `circomlibjs`. These can be provided with either an array of numbers or a 32-byte `Uint8Array`. However the conversion between the two is not trivial. Conversion is done using the `Field::e()` function.
+The one in `@iden3/js-crypto` is compatible with the EVM Poseidon hashing functions. The `circomlibjs` Poseidon is not.
+
+<BR />
+
+## circomlibjs Poseidon Hashing
+Using the Circomlibjs Poseidon hashing function requires awareness of how this is implemented in iden3.
+
+These can be provided with either an array of numbers or a 32-byte `Uint8Array`. However the conversion between the two is not trivial. Conversion is done using the `Field::e()` function.
 
 Since Poseidon is computed with Eliptic Curve operations, the curve over which the hash is computed is required. In general circom uses the bn128 curve.
 
@@ -181,8 +188,7 @@ await hash2['poseidon(bytes32[2])'](["0x0000000000000000000000000000000000000000
 // 0x007af346e2d304279e79e0a9f3023f771294a78acb70e73f90afe27cad401e81
 ```
 
-Unlike the JS Poseidon functions, that work differently depending whether these are provided with a `number` or a `Uint8Array`, the solidity functions return the same hash.
-
+Unlike the circomlibjs Poseidon functions, that work differently depending whether these are provided with a `number` or a `Uint8Array`, the solidity functions return the same hash.
 
 Match Smart Contract hash with JS hash
 ```JS
@@ -200,17 +206,3 @@ jhash = Array.from(jhash).map(byte => byte.toString(16).padStart(2, '0')).join('
 // 3dde09b2c54e4bf93215ce3166932e4182e8b962d771b91b85a3288f124d3923
 ```
 <BR />
-
-
-```JS
-let { buildPoseidon }  = require("circomlibjs")
-let jsposeidon = await buildPoseidon()
-
-one = jsposeidon.F.e(1)
-oneb = Array.from(one).map(byte => byte.toString(16).padStart(2, '0')).join('')
-// 'fbffff4f1c3496ac29cd609f9576fc362e4679786fa36e662fdf079ac1770a0e'
-
-oner = one.reverse()
-onebr = Array.from(oner).map(byte => byte.toString(16).padStart(2, '0')).join('')
-// '0e0a77c19a07df2f666ea36f7879462e36fc76959f60cd29ac96341c4ffffffb'
-```
